@@ -1,0 +1,48 @@
+{
+  "name": "give-skill",
+  "version": "1.0.0",
+  "description": "Universal skill installer for AI coding agents - Claude, Cursor, Copilot, and more",
+  "type": "module",
+  "bin": {
+    "give-skill": "./dist/index.js"
+  },
+  "files": [
+    "dist",
+    "README.md"
+  ],
+  "scripts": {
+    "build": "bun build src/index.ts --outdir dist --target node --minify",
+    "dev": "bun src/index.ts",
+    "prepublishOnly": "bun run build"
+  },
+  "keywords": [
+    "cli",
+    "skills",
+    "claude",
+    "cursor",
+    "copilot",
+    "github-copilot",
+    "ai-agents",
+    "agent-skills",
+    "coding-assistant"
+  ],
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/compilecafe/give-skill.git"
+  },
+  "homepage": "https://github.com/compilecafe/give-skill#readme",
+  "bugs": {
+    "url": "https://github.com/compilecafe/give-skill/issues"
+  },
+  "author": "Compile Café",
+  "license": "MIT",
+  "dependencies": {
+    "@clack/prompts": "^0.11.0",
+    "commander": "^14.0.2",
+    "picocolors": "^1.1.1"
+  },
+  "devDependencies": {
+    "@types/bun": "latest"
+  },
+  "module": "src/index.ts"
+}
