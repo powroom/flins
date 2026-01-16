@@ -78,27 +78,56 @@ npx give-skill expo/skills --list
 
 ## Managing Skills
 
-`give-skill` tracks installed skills and makes it easy to update them.
+`give-skill` tracks installed skills and makes it easy to manage them.
 
 ```bash
+# List all installed skills
+npx give-skill list
+
 # Check status of all installed skills
 npx give-skill status
 
 # Check status of specific skills
 npx give-skill status pr-reviewer test-generator
 
-# Update all skills to latest versions
+# Update all skills with available updates (interactive selection)
 npx give-skill update
 
 # Update specific skills
-npx give-skill update pr-reviewer
+npx give-skill update pr-reviewer test-generator
 
-# Update without confirmation
+# Update without confirmation (auto-selects all with updates)
 npx give-skill update -y
+
+# Remove specific skills
+npx give-skill remove pr-reviewer
+
+# Remove from specific agent only
+npx give-skill remove pr-reviewer -a claude-code
+
+# Remove global installation only
+npx give-skill remove pr-reviewer --global
+
+# Remove without confirmation (auto-selects all)
+npx give-skill remove -y
+
+# Interactive removal (shows multiselect of all installed skills)
+npx give-skill remove
 
 # Clean up orphaned entries
 npx give-skill clean
 ```
+
+### Status Indicators
+
+The `status` command shows one of the following states for each skill:
+
+| Icon | Status | Description |
+| ---- | ------ | ----------- |
+| ✓ | `latest` | Skill is up to date with the remote repository |
+| ↓ | `update-available` | A newer version is available |
+| ✗ | `error` | Failed to check for updates (network issues, repo deleted, etc.) |
+| ○ | `orphaned` | No valid installations found (folders were manually deleted) |
 
 ## Command Reference
 
@@ -106,20 +135,22 @@ npx give-skill clean
 give-skill <source> [options]
 
 Arguments:
-  source                  Git repo URL or GitHub shorthand (owner/repo)
+  source                  Git repo URL, GitHub shorthand (owner/repo), or direct path to skill
 
 Options:
-  -g, --global            Install to home directory instead of project
-  -a, --agent <...>       Target specific agents (claude-code, cursor, copilot, etc.)
-  -s, --skill <...>       Install specific skills by name
-  -l, --list              List skills without installing
+  -g, --global            Install skill globally (user-level) instead of project-level
+  -a, --agent <...>       Specify agents to install to (windsurf, gemini, claude-code, cursor, copilot, etc.)
+  -s, --skill <...>       Specify skill names to install (skip selection prompt)
+  -l, --list              List available skills in the repository without installing
   -y, --yes               Skip all prompts (CI-friendly)
   -V, --version           Show version
   -h, --help              Show help
 
 Commands:
-  update [skills...]      Update installed skills to latest versions
-  status [skills...]      Check status of installed skills
+  update [skills...]      Update installed skills to their latest versions
+  status [skills...]      Check status of installed skills (updates available, orphaned, etc.)
+  remove [skills...]      Remove installed skills (interactive if no skills specified)
+  list                    List all installed skills
   clean                   Remove orphaned skill entries from state
 ```
 
@@ -162,45 +193,23 @@ npx give-skill expo/skills -s pr-reviewer -g -a copilot -y
 
 ## Where Skills Go
 
-### Project Level (default)
-
-| Agent         | Path                       |
-| ------------- | -------------------------- |
-| Claude Code   | `.claude/skills/<name>/`   |
-| Cursor        | `.cursor/skills/<name>/`   |
-| Copilot       | `.github/skills/<name>/`   |
-| Gemini CLI    | `.gemini/skills/<name>/`   |
-| Windsurf      | `.windsurf/skills/<name>/` |
-| Trae          | `.trae/skills/<name>/`     |
-| Factory Droid | `.factory/skills/<name>/`  |
-| Letta         | `.skills/<name>/`          |
-| OpenCode      | `.opencode/skill/<name>/`  |
-| Codex         | `.codex/skills/<name>/`    |
-| Antigravity   | `.agent/skills/<name>/`    |
-| Amp           | `.agents/skills/<name>/`   |
-| Kilo Code     | `.kilocode/skills/<name>/` |
-| Roo Code      | `.roo/skills/<name>/`      |
-| Goose         | `.goose/skills/<name>/`    |
-
-### Global Level (`--global`)
-
-| Agent         | Path                                   |
-| ------------- | -------------------------------------- |
-| Claude Code   | `~/.claude/skills/<name>/`             |
-| Cursor        | `~/.cursor/skills/<name>/`             |
-| Copilot       | `~/.copilot/skills/<name>/`            |
-| Gemini CLI    | `~/.gemini/skills/<name>/`             |
-| Windsurf      | `~/.codeium/windsurf/skills/<name>/`   |
-| Trae          | Project-level only (SOLO mode)         |
-| Factory Droid | `~/.factory/skills/<name>/`            |
-| Letta         | `~/.letta/skills/<name>/`              |
-| OpenCode      | `~/.config/opencode/skill/<name>/`     |
-| Codex         | `~/.codex/skills/<name>/`              |
-| Antigravity   | `~/.gemini/antigravity/skills/<name>/` |
-| Amp           | `~/.config/agents/skills/<name>/`      |
-| Kilo Code     | `~/.kilocode/skills/<name>/`           |
-| Roo Code      | `~/.roo/skills/<name>/`                |
-| Goose         | `~/.config/goose/skills/<name>/`       |
+| Agent         | Project Level                        | Global Level (`--global`)                    |
+| ------------- | ------------------------------------ | ------------------------------------------- |
+| Claude Code   | `.claude/skills/<name>/`             | `~/.claude/skills/<name>/`                  |
+| Cursor        | `.cursor/skills/<name>/`             | `~/.cursor/skills/<name>/`                  |
+| Copilot       | `.github/skills/<name>/`             | `~/.copilot/skills/<name>/`                 |
+| Gemini CLI    | `.gemini/skills/<name>/`             | `~/.gemini/skills/<name>/`                  |
+| Windsurf      | `.windsurf/skills/<name>/`           | `~/.codeium/windsurf/skills/<name>/`        |
+| Trae          | `.trae/skills/<name>/`               | Project-level only (SOLO mode)              |
+| Factory Droid | `.factory/skills/<name>/`            | `~/.factory/skills/<name>/`                 |
+| Letta         | `.skills/<name>/`                    | `~/.letta/skills/<name>/`                   |
+| OpenCode      | `.opencode/skill/<name>/`            | `~/.config/opencode/skill/<name>/`          |
+| Codex         | `.codex/skills/<name>/`              | `~/.codex/skills/<name>/`                   |
+| Antigravity   | `.agent/skills/<name>/`              | `~/.gemini/antigravity/skills/<name>/`      |
+| Amp           | `.agents/skills/<name>/`             | `~/.config/agents/skills/<name>/`           |
+| Kilo Code     | `.kilocode/skills/<name>/`           | `~/.kilocode/skills/<name>/`                |
+| Roo Code      | `.roo/skills/<name>/`                | `~/.roo/skills/<name>/`                     |
+| Goose         | `.goose/skills/<name>/`              | `~/.config/goose/skills/<name>/`            |
 
 ## Creating Skills
 
@@ -274,10 +283,11 @@ If a folder matches an agent's skill directory, the CLI will find it.
                    └──────────────┘
 ```
 
-1. **Clone** the source repository
-2. **Discover** all `SKILL.md` files
-3. **Detect** installed agents on your system
+1. **Clone** the source repository (supports specific branches and subpaths)
+2. **Discover** all `SKILL.md` files in common and agent-specific directories
+3. **Detect** installed agents on your system automatically
 4. **Install** skills to agent-specific directories
+5. **Track** installation state for future updates and management
 
 ## State Management
 
@@ -286,6 +296,7 @@ If a folder matches an agent's skill directory, the CLI will find it.
 - **Update tracking**: Know when skills have updates available
 - **Source tracking**: Remember where each skill came from
 - **Batch operations**: Update all skills without re-specifying sources
+- **Branch tracking**: Remember which branch was used for installation
 
 **Important**: State tracking only works for skills installed via `give-skill`. Manually installed skills are not tracked.
 
@@ -295,11 +306,12 @@ The state file contains:
 {
   "lastUpdate": "2025-01-16T10:00:00Z",
   "skills": {
-    "expo/skills:pr-reviewer": {
-      "source": "expo/skills",
+    "pr-reviewer": {
+      "source": "https://github.com/expo/skills.git",
       "url": "https://github.com/expo/skills.git",
       "branch": "main",
       "commit": "abc123...",
+      "subpath": "skills/.curated",
       "installedAt": "2025-01-15T10:00:00Z",
       "installations": [
         {
@@ -313,7 +325,7 @@ The state file contains:
 }
 ```
 
-Skills are stored with composite keys (`${source}:${skillName}`) to prevent conflicts when multiple sources have skills with the same name. The branch is also stored so that updates use the same branch as the original installation.
+Skills are stored by name (lowercased). If you install a skill with the same name from a different source, it will overwrite the existing entry after confirmation.
 
 If you manually delete skill folders, run `npx give-skill clean` to remove orphaned entries.
 
@@ -336,7 +348,31 @@ Check you have write permissions for the target directory.
 
 ### Agent not detected
 
-The CLI checks default agent directories. Manually specify with `-a` if needed.
+The CLI automatically detects installed agents by checking their default directories. To see which agents are detected, run a command and review the agent selection prompt. Manually specify with `-a` if needed.
+
+### Source URL formats
+
+`give-skill` supports multiple source formats:
+
+```bash
+# GitHub shorthand
+npx give-skill expo/skills
+
+# Full GitHub URL
+npx give-skill https://github.com/expo/skills
+
+# Specific branch
+npx give-skill https://github.com/expo/skills/tree/develop
+
+# Specific branch with subpath
+npx give-skill https://github.com/expo/skills/tree/develop/skills/custom
+
+# GitLab
+npx give-skill https://gitlab.com/org/repo
+
+# Any git repository
+npx give-skill https://example.com/repo.git
+```
 
 ## License
 

@@ -6,21 +6,6 @@ import type { StateFile, SkillState, SkillInstallation, AgentType } from './type
 const STATE_DIR = join(homedir(), '.give-skill');
 const STATE_FILE = join(STATE_DIR, 'state.json');
 
-export function makeSkillKey(sourceName: string, skillName: string): string {
-  return `${sourceName}:${skillName}`;
-}
-
-export function parseSkillKey(key: string): { sourceName: string; skillName: string } {
-  const colonIndex = key.indexOf(':');
-  if (colonIndex === -1) {
-    return { sourceName: '', skillName: key };
-  }
-  return {
-    sourceName: key.slice(0, colonIndex),
-    skillName: key.slice(colonIndex + 1),
-  };
-}
-
 function ensureStateDir(): void {
   if (!existsSync(STATE_DIR)) {
     mkdirSync(STATE_DIR, { recursive: true });
@@ -57,7 +42,6 @@ export function saveState(state: StateFile): void {
 }
 
 export function addSkill(
-  sourceName: string,
   skillName: string,
   url: string,
   subpath: string | undefined,
@@ -66,14 +50,14 @@ export function addSkill(
   installation: SkillInstallation
 ): { updated: boolean; previousBranch?: string } {
   const state = loadState();
-  const key = makeSkillKey(sourceName, skillName);
+  const key = skillName.toLowerCase();
 
   let updated = false;
   let previousBranch: string | undefined;
 
   if (!state.skills[key]) {
     state.skills[key] = {
-      source: sourceName,
+      source: url,
       url,
       subpath,
       branch,
@@ -82,12 +66,16 @@ export function addSkill(
       installations: [],
     };
   } else {
-    // Check if branch is different
     if (state.skills[key].branch !== branch) {
       previousBranch = state.skills[key].branch;
       state.skills[key].branch = branch;
       state.skills[key].commit = commit;
       updated = true;
+    }
+    state.skills[key].url = url;
+    state.skills[key].source = url;
+    if (subpath) {
+      state.skills[key].subpath = subpath;
     }
   }
 
@@ -105,9 +93,9 @@ export function addSkill(
   return { updated, previousBranch };
 }
 
-export function removeSkillInstallation(sourceName: string, skillName: string, agent: AgentType, path: string): void {
+export function removeSkillInstallation(skillName: string, agent: AgentType, path: string): void {
   const state = loadState();
-  const key = makeSkillKey(sourceName, skillName);
+  const key = skillName.toLowerCase();
 
   if (!state.skills[key]) {
     return;
@@ -124,9 +112,9 @@ export function removeSkillInstallation(sourceName: string, skillName: string, a
   saveState(state);
 }
 
-export function updateSkillCommit(sourceName: string, skillName: string, commit: string): void {
+export function updateSkillCommit(skillName: string, commit: string): void {
   const state = loadState();
-  const key = makeSkillKey(sourceName, skillName);
+  const key = skillName.toLowerCase();
 
   if (state.skills[key]) {
     state.skills[key].commit = commit;
@@ -134,10 +122,9 @@ export function updateSkillCommit(sourceName: string, skillName: string, commit:
   }
 }
 
-export function getSkillState(sourceName: string, skillName: string): SkillState | null {
+export function getSkillState(skillName: string): SkillState | null {
   const state = loadState();
-  const key = makeSkillKey(sourceName, skillName);
-  return state.skills[key] || null;
+  return state.skills[skillName.toLowerCase()] || null;
 }
 
 export function getAllSkills(): StateFile {
@@ -153,7 +140,10 @@ export async function cleanOrphanedEntries(): Promise<void> {
 
     for (const installation of skillState.installations) {
       try {
-        if (existsSync(installation.path)) {
+        const path = installation.type === 'global'
+          ? installation.path
+          : join(process.cwd(), installation.path);
+        if (existsSync(path)) {
           validInstallations.push(installation);
         }
       } catch {

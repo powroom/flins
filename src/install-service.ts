@@ -27,18 +27,6 @@ interface ServiceContext {
   spinner: ReturnType<typeof p.spinner>;
 }
 
-function extractSourceName(url: string): string {
-  const match = url.match(/github\.com\/([^/]+\/[^/]+?)(\.git)?$/);
-  if (match && match[1]) {
-    return match[1];
-  }
-  const gitlabMatch = url.match(/gitlab\.com\/([^/]+\/[^/]+?)(\.git)?$/);
-  if (gitlabMatch && gitlabMatch[1]) {
-    return gitlabMatch[1];
-  }
-  return url;
-}
-
 export async function performInstallation(
   source: string,
   options: Options
@@ -59,7 +47,6 @@ export async function performInstallation(
     context.spinner.stop('Repository cloned');
 
     const commit = await getCommitHash(context.tempDir);
-    const sourceName = extractSourceName(parsed.url);
 
     context.spinner.start('Discovering skills...');
     const skills = await discoverSkills(context.tempDir, parsed.subpath);
@@ -110,7 +97,6 @@ export async function performInstallation(
       targetAgents,
       installGlobally,
       parsed,
-      sourceName,
       commit,
       branch
     );
@@ -321,7 +307,6 @@ async function performParallelInstall(
   targetAgents: AgentType[],
   installGlobally: boolean,
   parsed: ParsedSource,
-  sourceName: string,
   commit: string,
   branch: string
 ): Promise<InstallResult> {
@@ -354,7 +339,6 @@ async function performParallelInstall(
       const agent = targetAgents[agentIndex]!;
 
       const addResult = addSkill(
-        sourceName,
         skill.name,
         parsed.url,
         parsed.subpath,
@@ -363,12 +347,16 @@ async function performParallelInstall(
         {
           agent,
           type: installGlobally ? 'global' : 'project',
-          path: result.path,
+          path: result.originalPath,
         }
       );
 
       if (addResult.updated && addResult.previousBranch) {
-        branchChanges.set(skill.name, { previous: addResult.previousBranch, current: branch });
+        const existing = branchChanges.get(skill.name);
+        branchChanges.set(skill.name, {
+          previous: existing?.previous ?? addResult.previousBranch,
+          current: existing?.current ?? branch,
+        });
       }
     }
   }
@@ -379,10 +367,8 @@ async function performParallelInstall(
 
   if (branchChanges.size > 0) {
     console.log();
-    p.log.warn(pc.yellow('Branch changed for existing skill(s):'));
     for (const [skillName, { previous, current }] of branchChanges) {
-      p.log.message(`  ${pc.cyan(skillName)}: ${pc.dim(previous)} → ${pc.green(current)}`);
-      p.log.message(`    ${pc.dim('Future updates will use the new branch.')}`);
+      p.log.warn(pc.yellow(`  ${pc.cyan(skillName)}: ${pc.dim(previous)} → ${pc.green(current)}`));
     }
   }
 

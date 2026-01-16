@@ -1,16 +1,21 @@
 import * as p from '@clack/prompts';
 import pc from 'picocolors';
 import { existsSync } from 'fs';
-import { join } from 'path';
+import { join, resolve } from 'path';
 import { cloneRepo, cleanupTempDir, getLatestCommit, getCommitHash } from './git.js';
 import { discoverSkills } from './skills.js';
 import { installSkillForAgent } from './installer.js';
-import { getAllSkills, updateSkillCommit, removeSkillInstallation, cleanOrphanedEntries, makeSkillKey, parseSkillKey } from './state.js';
+import { getAllSkills, updateSkillCommit, removeSkillInstallation, cleanOrphanedEntries } from './state.js';
 import { agents } from './agents.js';
-import type { Skill, SkillState } from './types.js';
+import type { SkillState, SkillInstallation } from './types.js';
+
+function resolveInstallationPath(installation: SkillInstallation): string {
+  return installation.type === 'global'
+    ? installation.path
+    : resolve(process.cwd(), installation.path);
+}
 
 interface StatusResult {
-  sourceName: string;
   skillName: string;
   currentCommit: string;
   latestCommit: string;
@@ -20,25 +25,26 @@ interface StatusResult {
 }
 
 interface UpdateResult {
-  sourceName: string;
   skillName: string;
   success: boolean;
   updated: number;
   failed: number;
   error?: string;
-}
+};
 
-async function checkSkillUpdate(sourceName: string, skillName: string, skillState: SkillState): Promise<StatusResult> {
-  const installations = skillState.installations.map(inst => ({
-    agent: agents[inst.agent].displayName,
-    path: inst.path,
-    exists: existsSync(inst.path),
-  }));
+async function checkSkillUpdate(skillName: string, skillState: SkillState): Promise<StatusResult> {
+  const installations = skillState.installations.map(inst => {
+    const resolvedPath = resolveInstallationPath(inst);
+    return {
+      agent: agents[inst.agent].displayName,
+      path: resolvedPath,
+      exists: existsSync(resolvedPath),
+    };
+  });
 
   const existingInstallations = installations.filter(i => i.exists);
   if (existingInstallations.length === 0) {
     return {
-      sourceName,
       skillName,
       currentCommit: skillState.commit,
       latestCommit: skillState.commit,
@@ -52,7 +58,6 @@ async function checkSkillUpdate(sourceName: string, skillName: string, skillStat
     const isLatest = latestCommit === skillState.commit;
 
     return {
-      sourceName,
       skillName,
       currentCommit: skillState.commit,
       latestCommit,
@@ -61,7 +66,6 @@ async function checkSkillUpdate(sourceName: string, skillName: string, skillStat
     };
   } catch (error) {
     return {
-      sourceName,
       skillName,
       currentCommit: skillState.commit,
       latestCommit: skillState.commit,
@@ -76,10 +80,10 @@ export async function checkStatus(skillNames?: string[]): Promise<StatusResult[]
   const state = getAllSkills();
   const results: StatusResult[] = [];
 
-  const allSkills = Object.entries(state.skills).map(([key, skillState]) => {
-    const { sourceName, skillName } = parseSkillKey(key);
-    return { key, sourceName, skillName, state: skillState };
-  });
+  const allSkills = Object.entries(state.skills).map(([skillName, skillState]) => ({
+    skillName,
+    state: skillState,
+  }));
 
   let skillsToCheck: typeof allSkills;
 
@@ -97,15 +101,15 @@ export async function checkStatus(skillNames?: string[]): Promise<StatusResult[]
   const spinner = p.spinner();
 
   if (skillsToCheck.length === 1) {
-    const { sourceName, skillName, state: skillState } = skillsToCheck[0]!;
-    spinner.start(`Checking ${pc.cyan(`${sourceName}/${skillName}`)}...`);
-    const result = await checkSkillUpdate(sourceName, skillName, skillState);
+    const { skillName, state: skillState } = skillsToCheck[0]!;
+    spinner.start(`Checking ${pc.cyan(skillName)}...`);
+    const result = await checkSkillUpdate(skillName, skillState);
     spinner.stop(result.status === 'latest' ? pc.green('Up to date') : pc.yellow('Update available'));
     results.push(result);
   } else {
     spinner.start(`Checking ${skillsToCheck.length} skill${skillsToCheck.length > 1 ? 's' : ''}...`);
-    for (const { sourceName, skillName, state: skillState } of skillsToCheck) {
-      const result = await checkSkillUpdate(sourceName, skillName, skillState);
+    for (const { skillName, state: skillState } of skillsToCheck) {
+      const result = await checkSkillUpdate(skillName, skillState);
       results.push(result);
     }
     spinner.stop('Check complete');
@@ -118,10 +122,10 @@ export async function performUpdate(skillNames?: string[], options: { yes?: bool
   const state = getAllSkills();
   const results: UpdateResult[] = [];
 
-  const allSkills = Object.entries(state.skills).map(([key, skillState]) => {
-    const { sourceName, skillName } = parseSkillKey(key);
-    return { key, sourceName, skillName, state: skillState };
-  });
+  const allSkills = Object.entries(state.skills).map(([skillName, skillState]) => ({
+    skillName,
+    state: skillState,
+  }));
 
   let skillsToUpdate: typeof allSkills;
 
@@ -154,14 +158,46 @@ export async function performUpdate(skillNames?: string[], options: { yes?: bool
 
   console.log();
   p.log.step(pc.bold('Updates Available'));
-  for (const result of skillsWithUpdates) {
-    p.log.message(`  ${pc.cyan(result.skillName)} ${pc.dim(`from ${result.sourceName}`)}`);
-    p.log.message(`    ${pc.dim('Current:')} ${pc.yellow(result.currentCommit.slice(0, 7))} ${pc.dim('→')} ${pc.green(result.latestCommit.slice(0, 7))} ${pc.dim('(latest)')}`);
+
+  const updateChoices = skillsWithUpdates.map(r => ({
+    value: r.skillName,
+    label: r.skillName,
+    hint: `${r.currentCommit.slice(0, 7)} → ${r.latestCommit.slice(0, 7)}`,
+  }));
+
+  let selectedToUpdate: string[];
+
+  if (options.yes) {
+    selectedToUpdate = skillsWithUpdates.map(r => r.skillName);
+  } else {
+    const selected = await p.multiselect({
+      message: 'Select skills to update',
+      options: updateChoices,
+      required: true,
+      initialValues: skillsWithUpdates.map(r => r.skillName),
+    });
+
+    if (p.isCancel(selected)) {
+      p.cancel('Update cancelled');
+      return [];
+    }
+
+    selectedToUpdate = selected as string[];
+  }
+
+  console.log();
+  p.log.step(pc.bold('Will Update'));
+  for (const skillName of selectedToUpdate) {
+    const result = skillsWithUpdates.find(r => r.skillName === skillName);
+    if (result) {
+      p.log.message(`  ${pc.cyan(result.skillName)}`);
+      p.log.message(`    ${pc.dim('Current:')} ${pc.yellow(result.currentCommit.slice(0, 7))} ${pc.dim('→')} ${pc.green(result.latestCommit.slice(0, 7))}`);
+    }
   }
   console.log();
 
   if (!options.yes) {
-    const confirmed = await p.confirm({ message: 'Update these skills?' });
+    const confirmed = await p.confirm({ message: 'Proceed with update?' });
     if (p.isCancel(confirmed) || !confirmed) {
       p.cancel('Update cancelled');
       return [];
@@ -169,17 +205,21 @@ export async function performUpdate(skillNames?: string[], options: { yes?: bool
   }
 
   const spinner = p.spinner();
-  spinner.start(`Updating ${skillsWithUpdates.length} skill${skillsWithUpdates.length > 1 ? 's' : ''}...`);
+  spinner.start(`Updating ${selectedToUpdate.length} skill${selectedToUpdate.length > 1 ? 's' : ''}...`);
 
-  for (const { key, sourceName, skillName, state: skillState } of skillsToUpdate) {
-    const statusResult = statusResults.find(r => r.skillName === skillName && r.sourceName === sourceName);
+  for (const { skillName, state: skillState } of skillsToUpdate) {
+    const statusResult = statusResults.find(r => r.skillName === skillName);
 
     if (!statusResult || statusResult.status !== 'update-available') {
       if (statusResult?.status === 'latest') {
-        results.push({ sourceName, skillName, success: true, updated: 0, failed: 0 });
+        results.push({ skillName, success: true, updated: 0, failed: 0 });
       } else {
-        results.push({ sourceName, skillName, success: false, updated: 0, failed: 0 });
+        results.push({ skillName, success: false, updated: 0, failed: 0 });
       }
+      continue;
+    }
+
+    if (!selectedToUpdate.includes(skillName)) {
       continue;
     }
 
@@ -201,8 +241,9 @@ export async function performUpdate(skillNames?: string[], options: { yes?: bool
       }
 
       for (const installation of skillState.installations) {
-        if (!existsSync(installation.path)) {
-          removeSkillInstallation(sourceName, skillName, installation.agent, installation.path);
+        const resolvedPath = resolveInstallationPath(installation);
+        if (!existsSync(resolvedPath)) {
+          removeSkillInstallation(skillName, installation.agent, installation.path);
           continue;
         }
 
@@ -217,10 +258,9 @@ export async function performUpdate(skillNames?: string[], options: { yes?: bool
         }
       }
 
-      updateSkillCommit(sourceName, skillName, commit);
+      updateSkillCommit(skillName, commit);
 
       results.push({
-        sourceName,
         skillName,
         success: failedCount === 0,
         updated: updatedCount,
@@ -228,7 +268,6 @@ export async function performUpdate(skillNames?: string[], options: { yes?: bool
       });
     } catch (error) {
       results.push({
-        sourceName,
         skillName,
         success: false,
         updated: updatedCount,
@@ -304,7 +343,7 @@ export async function displayStatus(statusResults: StatusResult[]): Promise<void
       orphaned: pc.dim('orphaned'),
     }[result.status];
 
-    p.log.message(`${statusIcon} ${pc.cyan(result.skillName)} ${pc.dim(`(${result.sourceName})`)}`);
+    p.log.message(`${statusIcon} ${pc.cyan(result.skillName)}`);
     p.log.message(`    Status: ${statusText}`);
 
     if (result.status === 'update-available') {

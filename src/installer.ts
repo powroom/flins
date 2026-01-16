@@ -6,6 +6,7 @@ import { agents } from './agents.js';
 interface InstallResult {
   success: boolean;
   path: string;
+  originalPath: string;
   error?: string;
 }
 
@@ -16,10 +17,11 @@ export async function installSkillForAgent(
 ): Promise<InstallResult> {
   const agent = agents[agentType];
   const skillName = skill.name || basename(skill.path);
+  const cwd = options.cwd || process.cwd();
 
   const targetBase = options.global
     ? agent.globalSkillsDir
-    : join(options.cwd || process.cwd(), agent.skillsDir);
+    : join(cwd, agent.skillsDir);
 
   const targetDir = join(targetBase, skillName);
 
@@ -27,11 +29,16 @@ export async function installSkillForAgent(
     await mkdir(targetDir, { recursive: true });
     await copyDirectory(skill.path, targetDir);
 
-    return { success: true, path: targetDir };
+    return {
+      success: true,
+      path: targetDir,
+      originalPath: options.global ? targetDir : join(agent.skillsDir, skillName)
+    };
   } catch (error) {
     return {
       success: false,
       path: targetDir,
+      originalPath: options.global ? targetDir : join(agent.skillsDir, skillName),
       error: error instanceof Error ? error.message : 'Unknown error',
     };
   }

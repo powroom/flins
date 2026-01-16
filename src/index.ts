@@ -5,6 +5,7 @@ import * as p from '@clack/prompts';
 import pc from 'picocolors';
 import { performInstallation } from './install-service.js';
 import { performUpdate, checkStatus, displayStatus, cleanOrphaned as cleanOrphanedService } from './update-service.js';
+import { performRemove, listRemovableSkills } from './remove-service.js';
 import packageJson from '../package.json' with { type: 'json' };
 
 const version = packageJson.version;
@@ -18,6 +19,12 @@ interface Options {
 }
 
 interface UpdateOptions {
+  yes?: boolean;
+}
+
+interface RemoveOptions {
+  global?: boolean;
+  agent?: string[];
   yes?: boolean;
 }
 
@@ -48,6 +55,23 @@ program
   .description('Check status of installed skills (updates available, orphaned, etc.)')
   .action(async (skills: string[]) => {
     await statusCommand(skills);
+  });
+
+program
+  .command('remove [skills...]')
+  .description('Remove installed skills')
+  .option('-g, --global', 'Remove from global location only')
+  .option('-a, --agent <agents...>', 'Remove from specific agents only')
+  .option('-y, --yes', 'Skip confirmation prompts')
+  .action(async (skills: string[], options: RemoveOptions) => {
+    await removeCommand(skills, options);
+  });
+
+program
+  .command('list')
+  .description('List all installed skills')
+  .action(async () => {
+    await listCommand();
   });
 
 program
@@ -104,6 +128,33 @@ async function statusCommand(skills: string[]) {
   } catch (error) {
     p.log.error(error instanceof Error ? error.message : 'Unknown error occurred');
     p.outro(pc.red('Status check failed'));
+    process.exit(1);
+  }
+}
+
+async function removeCommand(skills: string[], options: RemoveOptions) {
+  console.log();
+  p.intro(pc.bgCyan(pc.black(' give-skill ')));
+
+  try {
+    await performRemove(skills, options);
+  } catch (error) {
+    p.log.error(error instanceof Error ? error.message : 'Unknown error occurred');
+    p.outro(pc.red('Remove failed'));
+    process.exit(1);
+  }
+}
+
+async function listCommand() {
+  console.log();
+  p.intro(pc.bgCyan(pc.black(' give-skill ')));
+
+  try {
+    await listRemovableSkills();
+    p.outro('Done!');
+  } catch (error) {
+    p.log.error(error instanceof Error ? error.message : 'Unknown error occurred');
+    p.outro(pc.red('List failed'));
     process.exit(1);
   }
 }
