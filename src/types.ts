@@ -19,4 +19,26 @@ export interface ParsedSource {
   type: 'github' | 'gitlab' | 'git';
   url: string;
   subpath?: string;
+  branch?: string;
+}
+
+export interface SkillInstallation {
+  agent: AgentType;
+  type: 'global' | 'project';
+  path: string;
+}
+
+export interface SkillState {
+  source: string;
+  url: string;
+  subpath?: string;
+  branch: string;
+  commit: string;
+  installedAt: string;
+  installations: SkillInstallation[];
+}
+
+export interface StateFile {
+  lastUpdate: string;
+  skills: Record<string, SkillState>;
 }

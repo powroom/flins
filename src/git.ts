@@ -5,14 +5,13 @@ import { spawn } from 'child_process';
 import type { ParsedSource } from './types.js';
 
 export function parseSource(input: string): ParsedSource {
-  const githubTreeMatch = input.match(
-    /github\.com\/([^/]+)\/([^/]+)\/tree\/([^/]+)\/(.+)/
-  );
+  const githubTreeMatch = input.match(/github\.com\/([^/]+)\/([^/]+)\/tree\/([^/]+)(?:\/(.+))?$/);
   if (githubTreeMatch) {
-    const [, owner, repo, , subpath] = githubTreeMatch;
+    const [, owner, repo, branch, subpath] = githubTreeMatch;
     return {
       type: 'github',
       url: `https://github.com/${owner}/${repo}.git`,
+      branch,
       subpath,
     };
   }
@@ -27,14 +26,13 @@ export function parseSource(input: string): ParsedSource {
     };
   }
 
-  const gitlabTreeMatch = input.match(
-    /gitlab\.com\/([^/]+)\/([^/]+)\/-\/tree\/([^/]+)\/(.+)/
-  );
+  const gitlabTreeMatch = input.match(/gitlab\.com\/([^/]+)\/([^/]+)\/-\/tree\/([^/]+)(?:\/(.+))?$/);
   if (gitlabTreeMatch) {
-    const [, owner, repo, , subpath] = gitlabTreeMatch;
+    const [, owner, repo, branch, subpath] = gitlabTreeMatch;
     return {
       type: 'gitlab',
       url: `https://gitlab.com/${owner}/${repo}.git`,
+      branch,
       subpath,
     };
   }
@@ -65,11 +63,17 @@ export function parseSource(input: string): ParsedSource {
   };
 }
 
-export async function cloneRepo(url: string): Promise<string> {
+export async function cloneRepo(url: string, branch?: string): Promise<string> {
   const tempDir = join(tmpdir(), `give-skill-${Date.now()}`);
 
+  const args = ['clone', '--depth', '1'];
+  if (branch) {
+    args.push('--branch', branch);
+  }
+  args.push(url, tempDir);
+
   await new Promise<void>((resolve, reject) => {
-    const proc = spawn('git', ['clone', '--depth', '1', url, tempDir], {
+    const proc = spawn('git', args, {
       stdio: 'pipe',
     });
 
@@ -82,6 +86,52 @@ export async function cloneRepo(url: string): Promise<string> {
   });
 
   return tempDir;
+}
+
+export async function getLatestCommit(url: string, branch = 'main'): Promise<string> {
+  const result = await new Promise<string>((resolve, reject) => {
+    let output = '';
+    const proc = spawn('git', ['ls-remote', url, `refs/heads/${branch}`], { stdio: 'pipe' });
+
+    proc.stdout?.on('data', (data) => {
+      output += data.toString();
+    });
+
+    proc.on('close', (code) => {
+      if (code === 0 && output.trim()) {
+        resolve(output.trim().split(/\s+/)[0] ?? '');
+      } else {
+        reject(new Error(`Failed to get latest commit from ${url}`));
+      }
+    });
+
+    proc.on('error', reject);
+  });
+
+  return result;
+}
+
+export async function getCommitHash(repoPath: string): Promise<string> {
+  const result = await new Promise<string>((resolve, reject) => {
+    let output = '';
+    const proc = spawn('git', ['rev-parse', 'HEAD'], { cwd: repoPath, stdio: 'pipe' });
+
+    proc.stdout?.on('data', (data) => {
+      output += data.toString();
+    });
+
+    proc.on('close', (code) => {
+      if (code === 0 && output.trim()) {
+        resolve(output.trim());
+      } else {
+        reject(new Error('Failed to get commit hash'));
+      }
+    });
+
+    proc.on('error', reject);
+  });
+
+  return result;
 }
 
 export async function cleanupTempDir(dir: string): Promise<void> {
