@@ -1,9 +1,11 @@
 import { homedir } from "os";
 import { join } from "path";
-import { existsSync, readFileSync, writeFileSync, mkdirSync } from "fs";
-import type { StateFile, SkillState, SkillInstallation } from "@/types/state";
+import { existsSync, readFileSync, writeFileSync, mkdirSync, readdirSync } from "fs";
+import { expandHomeDir } from "@/utils/paths";
+import type { StateFile, SkillEntry, SkillInstallation, Dirent } from "@/types/state";
 import type { AgentType } from "@/types/agents";
-import { isValidSkillInstallation } from "@/utils/validation";
+import type { InstallableType } from "@/types/skills";
+import { agents } from "@/core/agents/config";
 
 const STATE_DIR = join(homedir(), ".sena");
 const STATE_FILE = join(STATE_DIR, "skills.lock");
@@ -49,10 +51,13 @@ export function addSkill(
   subpath: string | undefined,
   branch: string,
   commit: string,
-  installation: SkillInstallation,
+  installableType: InstallableType = "skill",
 ): { updated: boolean; previousBranch?: string } {
   const state = loadState();
-  const key = skillName.toLowerCase();
+  const key =
+    installableType === "skill"
+      ? `skill:${skillName.toLowerCase()}`
+      : `command:${skillName.toLowerCase()}`;
 
   let updated = false;
   let previousBranch: string | undefined;
@@ -63,7 +68,6 @@ export function addSkill(
       subpath,
       branch,
       commit,
-      installations: [],
     };
   } else {
     if (state.skills[key].branch !== branch) {
@@ -78,42 +82,31 @@ export function addSkill(
     }
   }
 
-  const existingIndex = state.skills[key].installations.findIndex(
-    (i) => i.agent === installation.agent && i.path === installation.path,
-  );
-
-  if (existingIndex >= 0) {
-    state.skills[key].installations[existingIndex] = installation;
-  } else {
-    state.skills[key].installations.push(installation);
-  }
-
   saveState(state);
   return { updated, previousBranch };
 }
 
-export function removeSkillInstallation(skillName: string, agent: AgentType, path: string): void {
+export function removeSkill(skillName: string, installableType: InstallableType): void {
   const state = loadState();
-  const key = skillName.toLowerCase();
+  const key =
+    installableType === "skill"
+      ? `skill:${skillName.toLowerCase()}`
+      : `command:${skillName.toLowerCase()}`;
 
-  if (!state.skills[key]) {
-    return;
-  }
-
-  state.skills[key].installations = state.skills[key].installations.filter(
-    (i) => !(i.agent === agent && i.path === path),
-  );
-
-  if (state.skills[key].installations.length === 0) {
-    delete state.skills[key];
-  }
-
+  delete state.skills[key];
   saveState(state);
 }
 
-export function updateSkillCommit(skillName: string, commit: string): void {
+export function updateSkillCommit(
+  skillName: string,
+  installableType: InstallableType,
+  commit: string,
+): void {
   const state = loadState();
-  const key = skillName.toLowerCase();
+  const key =
+    installableType === "skill"
+      ? `skill:${skillName.toLowerCase()}`
+      : `command:${skillName.toLowerCase()}`;
 
   if (state.skills[key]) {
     state.skills[key].commit = commit;
@@ -121,38 +114,94 @@ export function updateSkillCommit(skillName: string, commit: string): void {
   }
 }
 
-export function getSkillState(skillName: string): SkillState | null {
+export function getSkillEntry(
+  skillName: string,
+  installableType: InstallableType,
+): SkillEntry | null {
   const state = loadState();
-  return state.skills[skillName.toLowerCase()] || null;
+  const key =
+    installableType === "skill"
+      ? `skill:${skillName.toLowerCase()}`
+      : `command:${skillName.toLowerCase()}`;
+
+  return state.skills[key] || null;
 }
 
 export function getAllSkills(): StateFile {
   return loadState();
 }
 
+export function findGlobalSkillInstallations(
+  skillName: string,
+  installableType: InstallableType,
+): SkillInstallation[] {
+  const installations: SkillInstallation[] = [];
+
+  for (const [agentType, agentConfig] of Object.entries(agents)) {
+    if (installableType === "skill") {
+      const globalSkillsDirPath = expandHomeDir(agentConfig.globalSkillsDir);
+
+      if (existsSync(globalSkillsDirPath)) {
+        try {
+          const entries = readdirSync(globalSkillsDirPath, { withFileTypes: true }) as Dirent[];
+          const matchingEntry = entries.find(
+            (e) => e.isDirectory() && e.name.toLowerCase() === skillName.toLowerCase(),
+          );
+
+          if (matchingEntry) {
+            installations.push({
+              agent: agentType as AgentType,
+              installableType: "skill",
+              type: "global",
+              path: join(agentConfig.globalSkillsDir, matchingEntry.name),
+            });
+          }
+        } catch {}
+      }
+    } else {
+      const globalCommandsDir = agentConfig.globalCommandsDir;
+      if (globalCommandsDir) {
+        const globalCommandsDirPath = expandHomeDir(globalCommandsDir);
+
+        if (existsSync(globalCommandsDirPath)) {
+          try {
+            const entries = readdirSync(globalCommandsDirPath, { withFileTypes: true }) as Dirent[];
+            const matchingEntry = entries.find((e) => {
+              const baseName = e.name.replace(/\.md$/, "");
+              return baseName.toLowerCase() === skillName.toLowerCase();
+            });
+
+            if (matchingEntry) {
+              installations.push({
+                agent: agentType as AgentType,
+                installableType: "command",
+                type: "global",
+                path: join(globalCommandsDir!, matchingEntry.name),
+              });
+            }
+          } catch {}
+        }
+      }
+    }
+  }
+
+  return installations;
+}
+
 export async function cleanOrphanedEntries(): Promise<void> {
   const state = loadState();
   const orphanedKeys: string[] = [];
 
-  for (const [key, skillState] of Object.entries(state.skills)) {
-    const validInstallations: SkillInstallation[] = [];
+  for (const [key, _entry] of Object.entries(state.skills)) {
+    const parsed = key.split(":");
+    if (parsed.length !== 2) continue;
 
-    for (const installation of skillState.installations) {
-      try {
-        const path =
-          installation.type === "global"
-            ? installation.path
-            : join(process.cwd(), installation.path);
-        if (isValidSkillInstallation(path)) {
-          validInstallations.push(installation);
-        }
-      } catch {}
-    }
+    const installableType = parsed[0] === "skill" ? "skill" : "command";
+    const name = parsed[1]!;
+    const installations = findGlobalSkillInstallations(name, installableType);
 
-    if (validInstallations.length === 0) {
+    if (installations.length === 0) {
       orphanedKeys.push(key);
-    } else if (validInstallations.length !== skillState.installations.length) {
-      skillState.installations = validInstallations;
     }
   }
 

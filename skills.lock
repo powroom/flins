@@ -1,12 +1,12 @@
 {
   "version": "1.0.0",
   "skills": {
-    "clack-guidelines": {
+    "skill:clack-guidelines": {
       "url": "https://github.com/senahq/skills.git",
       "branch": "main",
       "commit": "133352b14db9f400d43d554c30eb54f849c8a71a"
     },
-    "commander-guidelines": {
+    "skill:commander-guidelines": {
       "url": "https://github.com/senahq/skills.git",
       "branch": "main",
       "commit": "133352b14db9f400d43d554c30eb54f849c8a71a"

@@ -3,13 +3,25 @@ import pc from "picocolors";
 import { parseSource } from "@/core/git/parser";
 import { cloneRepo, cleanupTempDir, getCommitHash } from "@/infrastructure/git-client";
 import { discoverSkills } from "@/core/skills/discovery";
+import { discoverCommands } from "@/core/commands/discovery";
 import { getSkillDisplayName } from "@/core/skills/parser";
-import { installSkillForAgent, isSkillInstalled, getInstallPath } from "@/infrastructure/installer";
+import { getCommandDisplayName } from "@/core/commands/parser";
+import {
+  installSkillForAgent,
+  isSkillInstalled,
+  getInstallPath,
+} from "@/infrastructure/skill-installer";
+import {
+  installCommandForAgent,
+  supportsCommands,
+  getCommandSupportAgents,
+} from "@/infrastructure/command-installer";
 import { detectInstalledAgents } from "@/core/agents/detector";
 import { agents } from "@/core/agents/config";
 import { addSkill } from "@/core/state/global";
 import { addLocalSkill } from "@/core/state/local";
 import type { Skill, ParsedSource } from "@/types/skills";
+import type { Command } from "@/types/commands";
 import type { AgentType } from "@/types/agents";
 
 interface Options {
@@ -57,36 +69,62 @@ export async function performInstallation(
 
     const commit = await getCommitHash(context.tempDir);
 
-    context.spinner.start("Discovering skills...");
+    context.spinner.start("Discovering skills and commands...");
     const skills = await discoverSkills(context.tempDir, parsed.subpath);
+    const commands = await discoverCommands(context.tempDir, parsed.subpath);
 
-    if (skills.length === 0) {
-      context.spinner.stop(pc.red("No skills found"));
+    if (skills.length === 0 && commands.length === 0) {
+      context.spinner.stop(pc.red("No skills or commands found"));
       p.outro(
         pc.red("No valid skills found. Skills require a SKILL.md with name and description."),
       );
       return { success: false, installed: 0, failed: 0, results: [] };
     }
 
-    context.spinner.stop(`Found ${pc.green(skills.length)} skill${skills.length > 1 ? "s" : ""}`);
+    const hasCommands = commands.length > 0;
+    context.spinner.stop(
+      `Found ${pc.green(skills.length)} skill${skills.length !== 1 ? "s" : ""}` +
+        (hasCommands
+          ? ` and ${pc.yellow(commands.length)} command${commands.length !== 1 ? "s" : ""}`
+          : ""),
+    );
 
     if (options.list) {
-      p.log.step(pc.bold("Available Skills"));
-      for (const skill of skills) {
-        p.log.message(`  ${pc.cyan(getSkillDisplayName(skill))}`);
-        p.log.message(`    ${pc.dim(skill.description)}`);
+      if (skills.length > 0) {
+        p.log.step(pc.bold("Available Skills"));
+        for (const skill of skills) {
+          p.log.message(`  ${pc.cyan(getSkillDisplayName(skill))}`);
+          p.log.message(`    ${pc.dim(skill.description)}`);
+        }
       }
-      p.outro("Use --skill <name> to install specific skills");
+      if (commands.length > 0) {
+        p.log.step(pc.bold("Available Commands"));
+        for (const command of commands) {
+          p.log.message(`  ${pc.cyan(getCommandDisplayName(command))}`);
+          p.log.message(`    ${pc.dim(command.description || `Command: ${command.name}`)}`);
+        }
+      }
+      p.outro("Use --skill <name> to install specific skills or commands");
       return { success: true, installed: 0, failed: 0, results: [] };
     }
 
     const selectedSkills = await selectSkills(skills, options);
-    if (!selectedSkills) {
+    const skillsAgents = selectedSkills ? await selectAgentsForSkills(options, context) : null;
+
+    const selectedCommands = commands.length > 0 ? await selectCommands(commands, options) : null;
+    const commandsAgents = selectedCommands
+      ? await selectAgentsForCommands(options, context)
+      : null;
+
+    if (!selectedSkills && !selectedCommands) {
       return { success: false, installed: 0, failed: 0, results: [] };
     }
 
-    const targetAgents = await selectAgents(options, context);
-    if (!targetAgents) {
+    if (selectedSkills && !skillsAgents) {
+      return { success: false, installed: 0, failed: 0, results: [] };
+    }
+
+    if (selectedCommands && !commandsAgents) {
       return { success: false, installed: 0, failed: 0, results: [] };
     }
 
@@ -98,17 +136,25 @@ export async function performInstallation(
     const confirmed = await showSummaryAndConfirm(
       options,
       selectedSkills,
-      targetAgents,
+      skillsAgents,
+      selectedCommands,
+      commandsAgents,
       installGlobally,
     );
     if (!confirmed) {
       return { success: false, installed: 0, failed: 0, results: [] };
     }
 
-    context.spinner.start("Installing skills...");
+    if (selectedCommands && selectedCommands.length > 0) {
+      p.log.warn(pc.yellow("Commands may change significantly or be removed - your feedback helps shape future releases"));
+    }
+
+    context.spinner.start("Installing...");
     const results = await performParallelInstall(
-      selectedSkills,
-      targetAgents,
+      selectedSkills || [],
+      skillsAgents || [],
+      selectedCommands || [],
+      commandsAgents || [],
       installGlobally,
       parsed,
       commit,
@@ -125,7 +171,11 @@ export async function performInstallation(
 }
 
 async function selectSkills(skills: Skill[], options: Options): Promise<Skill[] | null> {
-  let selectedSkills: Skill[];
+  if (skills.length === 0) {
+    return null;
+  }
+
+  let selectedSkills: Skill[] = [];
 
   if (options.skill && options.skill.length > 0) {
     selectedSkills = skills.filter((s) =>
@@ -166,11 +216,16 @@ async function selectSkills(skills: Skill[], options: Options): Promise<Skill[] 
     const selected = await p.multiselect({
       message: "Select skills to install",
       options: skillChoices,
-      required: true,
+      required: false,
     });
 
     if (p.isCancel(selected)) {
       p.cancel("Installation cancelled");
+      return null;
+    }
+
+    if (!selected || selected.length === 0) {
+      p.log.info("No skills selected");
       return null;
     }
 
@@ -180,7 +235,65 @@ async function selectSkills(skills: Skill[], options: Options): Promise<Skill[] 
   return selectedSkills;
 }
 
-async function selectAgents(
+async function selectCommands(commands: Command[], options: Options): Promise<Command[] | null> {
+  if (commands.length === 0) {
+    return null;
+  }
+
+  p.log.warn(pc.yellow("⚠ Commands may change significantly or be removed - your feedback helps shape future releases"));
+  p.log.message(pc.dim("See: https://github.com/senahq/sena#commands-experimental"));
+
+  let selectedCommands: Command[] = [];
+
+  if (options.skill && options.skill.length > 0) {
+    selectedCommands = commands.filter((c) =>
+      options.skill!.some(
+        (name) =>
+          c.name.toLowerCase() === name.toLowerCase() ||
+          getCommandDisplayName(c).toLowerCase() === name.toLowerCase(),
+      ),
+    );
+  }
+
+  if (selectedCommands.length === 0 && !options.yes && !options.force) {
+    const commandChoices = commands.map((c) => ({
+      value: c,
+      label: getCommandDisplayName(c),
+      hint: (c.description || `Command: ${c.name}`).slice(0, 55),
+    }));
+
+    const selected = await p.multiselect({
+      message: "Select commands to install",
+      options: commandChoices,
+      required: false,
+    });
+
+    if (p.isCancel(selected)) {
+      p.cancel("Installation cancelled");
+      return null;
+    }
+
+    if (!selected || selected.length === 0) {
+      p.log.info("No commands selected");
+      return null;
+    }
+
+    selectedCommands = selected as Command[];
+  } else if (options.yes || options.force) {
+    selectedCommands = commands;
+    p.log.info(`Installing all ${commands.length} commands`);
+  }
+
+  if (selectedCommands.length > 0) {
+    p.log.info(
+      `Selected ${selectedCommands.length} command${selectedCommands.length !== 1 ? "s" : ""}: ${selectedCommands.map((c) => pc.yellow(getCommandDisplayName(c))).join(", ")}`,
+    );
+  }
+
+  return selectedCommands.length > 0 ? selectedCommands : null;
+}
+
+async function selectAgentsForSkills(
   options: Options,
   context: ServiceContext,
 ): Promise<AgentType[] | null> {
@@ -233,10 +346,10 @@ async function selectAgents(
   } else if (installedAgents.length === 1 || options.yes || options.force) {
     if (installedAgents.length === 1) {
       const firstAgent = installedAgents[0]!;
-      p.log.info(`Installing to: ${pc.cyan(agents[firstAgent].displayName)}`);
+      p.log.info(`Installing skills to: ${pc.cyan(agents[firstAgent].displayName)}`);
     } else {
       p.log.info(
-        `Installing to: ${installedAgents.map((a) => pc.cyan(agents[a].displayName)).join(", ")}`,
+        `Installing skills to: ${installedAgents.map((a) => pc.cyan(agents[a].displayName)).join(", ")}`,
       );
     }
     return installedAgents;
@@ -261,6 +374,86 @@ async function selectAgents(
 
     return selected as AgentType[];
   }
+}
+
+async function selectAgentsForCommands(
+  options: Options,
+  _context: ServiceContext,
+): Promise<AgentType[] | null> {
+  const validAgentsForCommands = getCommandSupportAgents();
+
+  if (options.agent && options.agent.length > 0) {
+    const validAgents = Object.keys(agents) as AgentType[];
+    const invalidAgents = options.agent.filter((a) => !validAgents.includes(a as AgentType));
+
+    if (invalidAgents.length > 0) {
+      p.log.error(`Invalid agents: ${invalidAgents.join(", ")}`);
+      p.log.info(`Valid agents: ${validAgents.join(", ")}`);
+      return null;
+    }
+
+    const commandAgents = options.agent.filter((a) =>
+      supportsCommands(a as AgentType),
+    ) as AgentType[];
+
+    if (commandAgents.length === 0) {
+      p.log.error(
+        "Commands are only supported by: " +
+          validAgentsForCommands.map((a) => agents[a].displayName).join(", "),
+      );
+      return null;
+    }
+
+    const filtered = options.agent.filter((a) => !supportsCommands(a as AgentType));
+    if (filtered.length > 0) {
+      p.log.warn(`Filtering out agents that don't support commands: ${filtered.join(", ")}`);
+    }
+
+    return commandAgents;
+  }
+
+  const availableCommandAgents = validAgentsForCommands.filter((a) => agents[a]?.commandsDir);
+
+  if (availableCommandAgents.length === 0) {
+    p.log.warn("No agents with command support detected");
+    return [];
+  }
+
+  const autoConfirm = options.yes || options.force;
+
+  if (autoConfirm) {
+    p.log.info(
+      `Installing commands to: ${availableCommandAgents.map((a) => pc.cyan(agents[a].displayName)).join(", ")}`,
+    );
+    return availableCommandAgents;
+  }
+
+  p.log.warn(pc.yellow("⚠ Commands may work differently across agents or be removed - your feedback helps shape future releases"));
+  p.log.message(pc.dim("https://github.com/senahq/sena#commands-experimental"));
+
+  const agentChoices = availableCommandAgents.map((a) => ({
+    value: a,
+    label: agents[a].displayName,
+    hint: agents[a].commandsDir || "",
+  }));
+
+  const selected = await p.multiselect({
+    message: "Select agents to install commands to",
+    options: agentChoices,
+    required: true,
+    initialValues: availableCommandAgents,
+  });
+
+  if (p.isCancel(selected)) {
+    p.cancel("Installation cancelled");
+    return null;
+  }
+
+  p.log.info(
+    `Installing commands to: ${(selected as AgentType[]).map((a) => pc.cyan(agents[a].displayName)).join(", ")}`,
+  );
+
+  return selected as AgentType[];
 }
 
 async function determineScope(options: Options): Promise<boolean | null> {
@@ -296,19 +489,40 @@ async function determineScope(options: Options): Promise<boolean | null> {
 
 async function showSummaryAndConfirm(
   options: Options,
-  selectedSkills: Skill[],
-  targetAgents: AgentType[],
+  selectedSkills: Skill[] | null,
+  skillsAgents: AgentType[] | null,
+  selectedCommands: Command[] | null,
+  commandsAgents: AgentType[] | null,
   installGlobally: boolean,
 ): Promise<boolean> {
   p.log.step(pc.bold("Installation Summary"));
 
-  for (const skill of selectedSkills) {
-    p.log.message(`  ${pc.cyan(getSkillDisplayName(skill))}`);
-    for (const agent of targetAgents) {
-      const path = getInstallPath(skill.name, agent, { global: installGlobally });
-      const installed = await isSkillInstalled(skill.name, agent, { global: installGlobally });
-      const status = installed ? pc.yellow(" (will overwrite)") : "";
-      p.log.message(`    ${pc.dim("→")} ${agents[agent].displayName}: ${pc.dim(path)}${status}`);
+  if (selectedSkills && selectedSkills.length > 0 && skillsAgents) {
+    p.log.message(pc.bold(pc.cyan("Skills")));
+    for (const skill of selectedSkills) {
+      p.log.message(`  ${pc.cyan(getSkillDisplayName(skill))}`);
+      for (const agent of skillsAgents) {
+        const path = getInstallPath(skill.name, agent, { global: installGlobally });
+        const installed = await isSkillInstalled(skill.name, agent, { global: installGlobally });
+        const status = installed ? pc.yellow(" (will overwrite)") : "";
+        p.log.message(`    ${pc.dim("→")} ${agents[agent].displayName}: ${pc.dim(path)}${status}`);
+      }
+    }
+  }
+
+  if (
+    selectedCommands &&
+    selectedCommands.length > 0 &&
+    commandsAgents &&
+    commandsAgents.length > 0
+  ) {
+    p.log.message(pc.bold(pc.yellow("Commands (Experimental)")));
+    for (const command of selectedCommands) {
+      p.log.message(`  ${pc.yellow(getCommandDisplayName(command))} ${pc.dim("[experimental]")}`);
+      for (const agent of commandsAgents) {
+        const path = `${agents[agent].commandsDir}/${command.name}.md`;
+        p.log.message(`    ${pc.dim("→")} ${agents[agent].displayName}: ${pc.dim(path)}`);
+      }
     }
   }
 
@@ -328,28 +542,45 @@ async function showSummaryAndConfirm(
 
 async function performParallelInstall(
   selectedSkills: Skill[],
-  targetAgents: AgentType[],
+  skillsAgents: AgentType[],
+  selectedCommands: Command[],
+  commandsAgents: AgentType[],
   installGlobally: boolean,
   parsed: ParsedSource,
   commit: string,
   branch: string,
 ): Promise<InstallResult> {
-  const installPromises = selectedSkills.flatMap((skill) =>
-    targetAgents.map((agent) => installSkillForAgent(skill, agent, { global: installGlobally })),
-  );
+  const installPromises = [
+    ...selectedSkills.flatMap((skill) =>
+      skillsAgents.map((agent) => installSkillForAgent(skill, agent, { global: installGlobally })),
+    ),
+    ...selectedCommands.flatMap((command) =>
+      commandsAgents.map((agent) =>
+        installCommandForAgent(command, agent, { global: installGlobally }),
+      ),
+    ),
+  ];
 
   const installResults = await Promise.all(installPromises);
 
   const results = installResults.map((result, i) => {
-    const skillIndex = Math.floor(i / targetAgents.length);
-    const agentIndex = i % targetAgents.length;
-    const skill = selectedSkills[skillIndex]!;
-    const agent = targetAgents[agentIndex]!;
+    const skillIndex = Math.floor(i / Math.max(skillsAgents.length, commandsAgents.length));
+    const agentIndex = i % Math.max(skillsAgents.length, commandsAgents.length);
+    const isSkill = i < selectedSkills.length * skillsAgents.length;
+    const item = isSkill
+      ? selectedSkills[skillIndex % selectedSkills.length]!
+      : selectedCommands[skillIndex % selectedCommands.length]!;
+    const agentList = isSkill ? skillsAgents : commandsAgents;
+    const agent = agentList![agentIndex % agentList!.length]!;
+    const name = isSkill
+      ? getSkillDisplayName(item as Skill)
+      : getCommandDisplayName(item as Command);
 
     return {
-      skill: getSkillDisplayName(skill),
+      skill: name,
       agent: agents[agent].displayName,
       ...result,
+      installableType: isSkill ? "skill" : "command",
     };
   });
 
@@ -358,31 +589,50 @@ async function performParallelInstall(
   for (const [i, result] of installResults.entries()) {
     if (!result.success) continue;
 
-    const skillIndex = Math.floor(i / targetAgents.length);
-    const agentIndex = i % targetAgents.length;
-    const skill = selectedSkills[skillIndex]!;
-    const agent = targetAgents[agentIndex]!;
+    const isSkill = i < selectedSkills.length * skillsAgents.length;
 
     if (installGlobally) {
-      const addResult = addSkill(skill.name, parsed.url, parsed.subpath, branch, commit, {
-        agent,
-        type: "global",
-        path: result.originalPath,
-      });
+      if (isSkill) {
+        const skillIndex = Math.floor(i / skillsAgents.length);
+        const skill = selectedSkills[skillIndex % selectedSkills.length]!;
 
-      if (addResult.updated && addResult.previousBranch) {
-        const existing = branchChanges.get(skill.name);
-        branchChanges.set(skill.name, {
-          previous: existing?.previous ?? addResult.previousBranch,
-          current: existing?.current ?? branch,
-        });
+        const addResult = addSkill(skill.name, parsed.url, parsed.subpath, branch, commit, "skill");
+
+        if (addResult.updated && addResult.previousBranch) {
+          const existing = branchChanges.get(skill.name);
+          branchChanges.set(skill.name, {
+            previous: existing?.previous ?? addResult.previousBranch,
+            current: existing?.current ?? branch,
+          });
+        }
+      } else {
+        const commandIndex = Math.floor(
+          (i - selectedSkills.length * skillsAgents.length) / commandsAgents.length,
+        );
+        const command = selectedCommands[commandIndex % selectedCommands.length]!;
+
+        addSkill(command.name, parsed.url, parsed.subpath, branch, commit, "command");
       }
     }
   }
 
   if (!installGlobally) {
-    for (const skill of selectedSkills) {
-      addLocalSkill(skill.name, parsed.url, parsed.subpath, branch, commit);
+    for (const [i, result] of installResults.entries()) {
+      if (!result.success) continue;
+
+      const isSkill = i < selectedSkills.length * skillsAgents.length;
+
+      if (isSkill) {
+        const skillIndex = Math.floor(i / skillsAgents.length);
+        const skill = selectedSkills[skillIndex % selectedSkills.length]!;
+        addLocalSkill(skill.name, parsed.url, parsed.subpath, branch, commit, "skill");
+      } else {
+        const commandIndex = Math.floor(
+          (i - selectedSkills.length * skillsAgents.length) / commandsAgents.length,
+        );
+        const command = selectedCommands[commandIndex % selectedCommands.length]!;
+        addLocalSkill(command.name, parsed.url, parsed.subpath, branch, commit, "command");
+      }
     }
   }
 
@@ -396,21 +646,34 @@ async function performParallelInstall(
   }
 
   if (successful.length > 0) {
-    p.log.success(
-      pc.green(
-        `Successfully installed ${successful.length} skill${successful.length !== 1 ? "s" : ""}`,
-      ),
-    );
+    const skillCount = successful.filter(
+      (r) => (r as { installableType?: string }).installableType === "skill",
+    ).length;
+    const commandCount = successful.filter(
+      (r) => (r as { installableType?: string }).installableType === "command",
+    ).length;
+
+    const parts: string[] = [];
+    if (skillCount > 0) {
+      parts.push(`${skillCount} skill${skillCount !== 1 ? "s" : ""}`);
+    }
+    if (commandCount > 0) {
+      parts.push(`${commandCount} command${commandCount !== 1 ? "s" : ""}`);
+    }
+
+    p.log.success(pc.green(`Successfully installed ${parts.join(" and ")}`));
     for (const r of successful) {
-      p.log.message(`  ${pc.green("✓")} ${r.skill} → ${r.agent}`);
+      const icon =
+        (r as { installableType?: string }).installableType === "command"
+          ? pc.yellow("⚡")
+          : pc.green("✓");
+      p.log.message(`  ${icon} ${r.skill} → ${r.agent}`);
       p.log.message(`    ${pc.dim(r.path)}`);
     }
   }
 
   if (failed.length > 0) {
-    p.log.error(
-      pc.red(`Failed to install ${failed.length} skill${failed.length !== 1 ? "s" : ""}`),
-    );
+    p.log.error(pc.red(`Failed to install ${failed.length} item${failed.length !== 1 ? "s" : ""}`));
     for (const r of failed) {
       p.log.message(`  ${pc.red("✗")} ${r.skill} → ${r.agent}`);
       p.log.message(`    ${pc.dim(r.error)}`);
@@ -418,9 +681,9 @@ async function performParallelInstall(
   }
 
   if (successful.length > 0) {
-    p.outro(pc.green("Skills installed successfully"));
+    p.outro(pc.green("Installation complete"));
   } else {
-    p.outro(pc.yellow("No skills were installed"));
+    p.outro(pc.yellow("No items were installed"));
   }
 
   return {

@@ -1,17 +1,18 @@
 import * as p from "@clack/prompts";
 import pc from "picocolors";
 import { existsSync, rmSync } from "fs";
-import { getAllSkills, removeSkillInstallation } from "@/core/state/global";
+import { getAllSkills, removeSkill, findGlobalSkillInstallations } from "@/core/state/global";
 import {
   getAllLocalSkills,
   findLocalSkillInstallations,
   removeLocalSkill,
 } from "@/core/state/local";
+import { parseKey } from "@/types/state";
+import type { InstallableType } from "@/types/skills";
 import { agents } from "@/core/agents/config";
-import { isValidSkillInstallation } from "@/utils/validation";
+import { isValidInstallation } from "@/utils/validation";
 import { resolveInstallationPath } from "@/utils/paths";
 import { showNoSkillsMessage, Plural } from "@/utils/formatting";
-import type { SkillState } from "@/types/state";
 
 interface RemoveResult {
   skillName: string;
@@ -29,36 +30,58 @@ interface RemoveOptions {
 
 function getAllRemovableSkills(): Array<{
   skillName: string;
-  state: SkillState;
+  url: string;
+  subpath: string | undefined;
+  branch: string;
+  commit: string;
   isLocal: boolean;
+  installableType: InstallableType;
 }> {
-  const result: Array<{ skillName: string; state: SkillState; isLocal: boolean }> = [];
+  const result: Array<{
+    skillName: string;
+    url: string;
+    subpath: string | undefined;
+    branch: string;
+    commit: string;
+    isLocal: boolean;
+    installableType: InstallableType;
+  }> = [];
   const seen = new Set<string>();
 
   const localState = getAllLocalSkills();
   if (localState) {
-    for (const [skillName, localEntry] of Object.entries(localState.skills)) {
-      const installations = findLocalSkillInstallations(skillName);
-      result.push({
-        skillName,
-        state: {
-          ...localEntry,
-          installations,
-        },
-        isLocal: true,
-      });
-      seen.add(skillName.toLowerCase());
+    for (const [key, localEntry] of Object.entries(localState.skills)) {
+      const parsed = parseKey(key);
+      if (parsed) {
+        result.push({
+          skillName: parsed.name,
+          url: localEntry.url,
+          subpath: localEntry.subpath,
+          branch: localEntry.branch,
+          commit: localEntry.commit,
+          isLocal: true,
+          installableType: parsed.installableType,
+        });
+        seen.add(`${parsed.installableType}:${parsed.name.toLowerCase()}`);
+      }
     }
   }
 
   const globalState = getAllSkills();
-  for (const [skillName, skillState] of Object.entries(globalState.skills)) {
-    const key = skillName.toLowerCase();
+  for (const [skillName, skillEntry] of Object.entries(globalState.skills)) {
+    const parsed = parseKey(skillName);
+    const key = parsed
+      ? `${parsed.installableType}:${parsed.name.toLowerCase()}`
+      : skillName.toLowerCase();
     if (!seen.has(key)) {
       result.push({
-        skillName,
-        state: skillState,
+        skillName: parsed?.name ?? skillName,
+        url: skillEntry.url,
+        subpath: skillEntry.subpath,
+        branch: skillEntry.branch,
+        commit: skillEntry.commit,
         isLocal: false,
+        installableType: parsed?.installableType ?? "skill",
       });
     }
   }
@@ -98,10 +121,16 @@ export async function performRemove(
     const nameSet = new Set(skillNames.map((n) => n.toLowerCase()));
     skillsToRemove = allSkills.filter(({ skillName }) => nameSet.has(skillName.toLowerCase()));
   } else {
-    const allChoices = allSkills.map(({ skillName, state }) => {
-      const validInstallations = state.installations
+    const allChoices = allSkills.map(({ skillName, isLocal, installableType }) => {
+      const installations = isLocal
+        ? findLocalSkillInstallations(skillName, installableType)
+        : findGlobalSkillInstallations(skillName, installableType);
+
+      const validInstallations = installations
         .map((inst) => ({ installation: inst, resolvedPath: resolveInstallationPath(inst) }))
-        .filter(({ resolvedPath }) => isValidSkillInstallation(resolvedPath));
+        .filter(({ installation, resolvedPath }) =>
+          isValidInstallation(resolvedPath, installation.installableType),
+        );
 
       return {
         value: skillName,
@@ -160,19 +189,26 @@ export async function performRemove(
   const toRemove: Array<{
     skillName: string;
     isLocal: boolean;
+    installableType: InstallableType;
     installations: Array<{
-      installation: (typeof allSkills)[0]["state"]["installations"][number];
+      installation: import("@/types/state").SkillInstallation;
       resolvedPath: string;
     }>;
   }> = [];
 
-  for (const { skillName, state: skillState, isLocal } of skillsToRemove) {
-    const validInstallations = skillState.installations
+  for (const { skillName, isLocal, installableType } of skillsToRemove) {
+    const installations = isLocal
+      ? findLocalSkillInstallations(skillName, installableType)
+      : findGlobalSkillInstallations(skillName, installableType);
+
+    const validInstallations = installations
       .map((inst) => ({ installation: inst, resolvedPath: resolveInstallationPath(inst) }))
-      .filter(({ resolvedPath }) => isValidSkillInstallation(resolvedPath));
+      .filter(({ installation, resolvedPath }) =>
+        isValidInstallation(resolvedPath, installation.installableType),
+      );
 
     if (validInstallations.length > 0) {
-      toRemove.push({ skillName, isLocal, installations: validInstallations });
+      toRemove.push({ skillName, isLocal, installableType, installations: validInstallations });
       p.log.message(`  ${pc.cyan(skillName)}`);
       for (const { resolvedPath } of validInstallations) {
         p.log.message(`    ${pc.dim("→")} ${resolvedPath}`);
@@ -239,7 +275,7 @@ export async function performRemove(
     `Removing ${selectedToRemove.length} skill${selectedToRemove.length > 1 ? "s" : ""}...`,
   );
 
-  for (const { skillName, isLocal, installations } of toRemove) {
+  for (const { skillName, isLocal, installableType, installations } of toRemove) {
     if (!selectedToRemove.includes(skillName)) {
       continue;
     }
@@ -263,17 +299,18 @@ export async function performRemove(
 
       if (removeResult.success) {
         result.removed++;
-        if (!isLocal) {
-          removeSkillInstallation(skillName, installation.agent, installation.path);
-        }
       } else {
         result.failed++;
         result.success = false;
       }
     }
 
-    if (isLocal && result.removed > 0) {
-      removeLocalSkill(skillName);
+    if (result.removed > 0) {
+      if (isLocal) {
+        removeLocalSkill(skillName, installableType);
+      } else {
+        removeSkill(skillName, installableType);
+      }
     }
 
     results.push(result);
@@ -321,36 +358,40 @@ export async function listRemovableSkills(): Promise<void> {
     return;
   }
 
-  p.log.step(pc.bold("Installed Skills"));
+  p.log.step(pc.bold("Installed Skills and Commands"));
 
-  const localSkills: Array<{ skillName: string; state: SkillState }> = [];
-  const globalSkills: Array<{ skillName: string; state: SkillState }> = [];
+  const localSkills: Array<{ skillName: string; installableType: InstallableType }> = [];
+  const globalSkills: Array<{ skillName: string; installableType: InstallableType }> = [];
 
-  for (const { skillName, state, isLocal } of allSkills) {
+  for (const { skillName, isLocal, installableType } of allSkills) {
     if (isLocal) {
-      localSkills.push({ skillName, state });
+      localSkills.push({ skillName, installableType });
     } else {
-      globalSkills.push({ skillName, state });
+      globalSkills.push({ skillName, installableType });
     }
   }
 
   if (localSkills.length > 0) {
     if (globalSkills.length > 0) {
-      p.log.message(pc.bold(pc.cyan("Local skills (from ./skills.lock)")));
+      p.log.message(pc.bold(pc.cyan("Local (from ./skills.lock)")));
     }
-    for (const { skillName, state } of localSkills) {
-      p.log.message(`${pc.cyan(skillName)}`);
+    for (const { skillName, installableType } of localSkills) {
+      p.log.message(
+        `${pc.green("✓")} ${pc.cyan(installableType + ":" + skillName)} ${installableType === "command" ? pc.yellow("(experimental)") : ""}`,
+      );
 
-      const validInstallations = state.installations
+      const installations = findLocalSkillInstallations(skillName, installableType);
+      const validInstallations = installations
         .map((inst) => ({ installation: inst, resolvedPath: resolveInstallationPath(inst) }))
-        .filter(({ resolvedPath }) => isValidSkillInstallation(resolvedPath));
+        .filter(({ installation, resolvedPath }) =>
+          isValidInstallation(resolvedPath, installation.installableType),
+        );
 
       if (validInstallations.length > 0) {
         p.log.message(`  ${pc.dim("Installed in:")}`);
         for (const { installation, resolvedPath } of validInstallations) {
-          const scope = installation.type === "global" ? "global" : "project";
           p.log.message(
-            `    ${pc.dim("•")} ${agents[installation.agent].displayName} ${pc.dim(`(${scope})`)}: ${pc.dim(resolvedPath)}`,
+            `    ${pc.dim("•")} ${agents[installation.agent].displayName}: ${pc.dim(resolvedPath)}`,
           );
         }
       }
@@ -359,21 +400,24 @@ export async function listRemovableSkills(): Promise<void> {
 
   if (globalSkills.length > 0) {
     if (localSkills.length > 0) {
-      p.log.message(pc.bold(pc.cyan("Global skills (from ~/.sena/skills.lock)")));
+      p.log.message(pc.bold(pc.cyan("Global (from ~/.sena/skills.lock)")));
     }
-    for (const { skillName, state } of globalSkills) {
-      p.log.message(`${pc.cyan(skillName)}`);
+    for (const { skillName, installableType } of globalSkills) {
+      const typeLabel = installableType === "command" ? pc.yellow("⚡") : pc.green("✓");
+      p.log.message(`${typeLabel} ${pc.cyan(skillName)}`);
 
-      const validInstallations = state.installations
+      const installations = findGlobalSkillInstallations(skillName, installableType);
+      const validInstallations = installations
         .map((inst) => ({ installation: inst, resolvedPath: resolveInstallationPath(inst) }))
-        .filter(({ resolvedPath }) => isValidSkillInstallation(resolvedPath));
+        .filter(({ installation, resolvedPath }) =>
+          isValidInstallation(resolvedPath, installation.installableType),
+        );
 
       if (validInstallations.length > 0) {
         p.log.message(`  ${pc.dim("Installed in:")}`);
         for (const { installation, resolvedPath } of validInstallations) {
-          const scope = installation.type === "global" ? "global" : "project";
           p.log.message(
-            `    ${pc.dim("•")} ${agents[installation.agent].displayName} ${pc.dim(`(${scope})`)}: ${pc.dim(resolvedPath)}`,
+            `    ${pc.dim("•")} ${agents[installation.agent].displayName}: ${pc.dim(resolvedPath)}`,
           );
         }
       }

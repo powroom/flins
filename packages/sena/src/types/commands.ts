@@ -1,0 +1,15 @@
+export interface Command {
+  name: string;
+  description?: string;
+  path: string;
+  type: "markdown";
+}
+
+export const COMMANDS_SUPPORT_AGENTS = ["claude-code", "opencode", "factory"] as const;
+
+export type CommandsSupportAgent = (typeof COMMANDS_SUPPORT_AGENTS)[number];
+
+export interface AgentCommandsConfig {
+  commandsDir: string;
+  globalCommandsDir: string;
+}

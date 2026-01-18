@@ -2,6 +2,7 @@ import { join, resolve } from "path";
 import { existsSync, readFileSync, writeFileSync, rmSync, readdirSync } from "fs";
 import type { LocalState, LocalSkillEntry, SkillInstallation, Dirent } from "@/types/state";
 import type { AgentType } from "@/types/agents";
+import type { InstallableType } from "@/types/skills";
 import { agents } from "../agents/config";
 
 const STATE_VERSION = "1.0.0";
@@ -45,6 +46,7 @@ export function addLocalSkill(
   subpath: string | undefined,
   branch: string,
   commit: string,
+  installableType: InstallableType,
   cwd?: string,
 ): { updated: boolean; previousBranch?: string } {
   let state = loadLocalState(cwd);
@@ -56,7 +58,11 @@ export function addLocalSkill(
     };
   }
 
-  const key = skillName.toLowerCase();
+  const key =
+    installableType === "skill"
+      ? `skill:${skillName.toLowerCase()}`
+      : `command:${skillName.toLowerCase()}`;
+
   let updated = false;
   let previousBranch: string | undefined;
 
@@ -85,14 +91,21 @@ export function addLocalSkill(
   return { updated, previousBranch };
 }
 
-export function removeLocalSkill(skillName: string, cwd?: string): void {
+export function removeLocalSkill(
+  skillName: string,
+  installableType: InstallableType,
+  cwd?: string,
+): void {
   const state = loadLocalState(cwd);
 
   if (!state) {
     return;
   }
 
-  const key = skillName.toLowerCase();
+  const key =
+    installableType === "skill"
+      ? `skill:${skillName.toLowerCase()}`
+      : `command:${skillName.toLowerCase()}`;
   delete state.skills[key];
 
   if (Object.keys(state.skills).length > 0) {
@@ -107,22 +120,42 @@ export function removeLocalSkill(skillName: string, cwd?: string): void {
   }
 }
 
-export function getLocalSkill(skillName: string, cwd?: string): LocalSkillEntry | null {
+export function getLocalSkill(
+  skillName: string,
+  installableType: InstallableType,
+  cwd?: string,
+): LocalSkillEntry | null {
   const state = loadLocalState(cwd);
   if (!state) {
     return null;
   }
-  return state.skills[skillName.toLowerCase()] || null;
+
+  const key =
+    installableType === "skill"
+      ? `skill:${skillName.toLowerCase()}`
+      : `command:${skillName.toLowerCase()}`;
+
+  return state.skills[key] || null;
 }
 
-export function updateLocalSkillCommit(skillName: string, commit: string, cwd?: string): void {
+export function updateLocalSkillCommit(
+  skillName: string,
+  installableType: InstallableType,
+  commit: string,
+  cwd?: string,
+): void {
   const state = loadLocalState(cwd);
 
-  if (!state || !state.skills[skillName.toLowerCase()]) {
+  if (!state) {
     return;
   }
 
-  const skill = state.skills[skillName.toLowerCase()];
+  const key =
+    installableType === "skill"
+      ? `skill:${skillName.toLowerCase()}`
+      : `command:${skillName.toLowerCase()}`;
+
+  const skill = state.skills[key];
   if (skill) {
     skill.commit = commit;
     saveLocalState(state, cwd);
@@ -133,46 +166,59 @@ export function getAllLocalSkills(cwd?: string): LocalState | null {
   return loadLocalState(cwd);
 }
 
-export function findLocalSkillInstallations(skillName: string, cwd?: string): SkillInstallation[] {
+export function findLocalSkillInstallations(
+  skillName: string,
+  installableType: InstallableType,
+  cwd?: string,
+): SkillInstallation[] {
   const installations: SkillInstallation[] = [];
   const basePath = cwd || process.cwd();
 
   for (const [agentType, agentConfig] of Object.entries(agents)) {
-    const skillsDirPath = join(basePath, agentConfig.skillsDir);
+    if (installableType === "skill") {
+      const skillsDirPath = join(basePath, agentConfig.skillsDir);
 
-    if (existsSync(skillsDirPath)) {
-      try {
-        const entries = readdirSync(skillsDirPath, { withFileTypes: true }) as Dirent[];
-        const matchingEntry = entries.find(
-          (e) => e.isDirectory() && e.name.toLowerCase() === skillName.toLowerCase(),
-        );
+      if (existsSync(skillsDirPath)) {
+        try {
+          const entries = readdirSync(skillsDirPath, { withFileTypes: true }) as Dirent[];
+          const matchingEntry = entries.find(
+            (e) => e.isDirectory() && e.name.toLowerCase() === skillName.toLowerCase(),
+          );
 
-        if (matchingEntry) {
-          installations.push({
-            agent: agentType as AgentType,
-            type: "project",
-            path: join(agentConfig.skillsDir, matchingEntry.name),
-          });
+          if (matchingEntry) {
+            installations.push({
+              agent: agentType as AgentType,
+              installableType: "skill",
+              type: "project",
+              path: join(agentConfig.skillsDir, matchingEntry.name),
+            });
+          }
+        } catch {}
+      }
+    } else {
+      const commandsDir = agentConfig.commandsDir;
+      if (commandsDir) {
+        const commandsDirPath = join(basePath, commandsDir);
+
+        if (existsSync(commandsDirPath)) {
+          try {
+            const entries = readdirSync(commandsDirPath, { withFileTypes: true }) as Dirent[];
+            const matchingEntry = entries.find((e) => {
+              const baseName = e.name.replace(/\.md$/, "");
+              return baseName.toLowerCase() === skillName.toLowerCase();
+            });
+
+            if (matchingEntry) {
+              installations.push({
+                agent: agentType as AgentType,
+                installableType: "command",
+                type: "project",
+                path: join(commandsDir, matchingEntry.name),
+              });
+            }
+          } catch {}
         }
-      } catch {}
-    }
-
-    const globalSkillsDirPath = agentConfig.globalSkillsDir;
-    if (existsSync(globalSkillsDirPath)) {
-      try {
-        const entries = readdirSync(globalSkillsDirPath, { withFileTypes: true }) as Dirent[];
-        const matchingEntry = entries.find(
-          (e) => e.isDirectory() && e.name.toLowerCase() === skillName.toLowerCase(),
-        );
-
-        if (matchingEntry) {
-          installations.push({
-            agent: agentType as AgentType,
-            type: "global",
-            path: join(globalSkillsDirPath, matchingEntry.name),
-          });
-        }
-      } catch {}
+      }
     }
   }
 

@@ -22,5 +22,7 @@ export interface AgentConfig {
   configDir: string;
   skillsDir: string;
   globalSkillsDir: string;
+  commandsDir?: string;
+  globalCommandsDir?: string;
   detectInstalled: () => Promise<boolean>;
 }

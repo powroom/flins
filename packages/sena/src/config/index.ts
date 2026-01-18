@@ -9,6 +9,8 @@ interface AgentConfigEntry {
   configDir: string;
   skillsDir: string;
   globalSkillsDir: string;
+  commandsDir?: string;
+  globalCommandsDir?: string;
 }
 
 const home = homedir();
@@ -28,6 +30,8 @@ export function loadAgentConfig(): Record<AgentType, AgentConfig> {
       configDir: agent.configDir.replace("~", home),
       skillsDir: agent.skillsDir,
       globalSkillsDir: agent.globalSkillsDir.replace("~", home),
+      commandsDir: agent.commandsDir,
+      globalCommandsDir: agent.globalCommandsDir?.replace("~", home),
       detectInstalled: async () => {
         const configDirPath = agent.configDir.replace("~", home);
         return existsSync(configDirPath);

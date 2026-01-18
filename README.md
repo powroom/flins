@@ -22,26 +22,26 @@ Install, manage, and update skills across 15+ AI development tools from a single
 
 All agents support the Agent Skills open standard:
 
-| Agent                                                         | Status | Notes                          |
-| ------------------------------------------------------------- | ------ | ------------------------------ |
-| ![Claude Code](https://img.shields.io/badge/Claude_Code-blue) | ✅     | Full support                   |
-| ![Cursor](https://img.shields.io/badge/Cursor-green)          | ✅     | Full support                   |
-| ![GitHub Copilot](https://img.shields.io/badge/Copilot-black) | ✅     | Full support                   |
-| ![Gemini CLI](https://img.shields.io/badge/Gemini-blue)       | ✅     | Full support                   |
-| ![Windsurf](https://img.shields.io/badge/Windsurf-cyan)       | ✅     | Full support                   |
-| ![Trae](https://img.shields.io/badge/Trae-purple)             | ✅     | Project-level only (SOLO mode) |
-| ![Factory Droid](https://img.shields.io/badge/Factory-orange) | ✅     | Full support                   |
-| ![Letta](https://img.shields.io/badge/Letta-teal)             | ✅     | Full support                   |
-| ![OpenCode](https://img.shields.io/badge/OpenCode-indigo)     | ✅     | Full support                   |
-| ![Codex](https://img.shields.io/badge/Codex-green)            | ✅     | Full support                   |
-| ![Antigravity](https://img.shields.io/badge/Antigravity-red)  | ✅     | Full support                   |
-| ![Amp](https://img.shields.io/badge/Amp-yellow)               | ✅     | Full support                   |
-| ![Kilo Code](https://img.shields.io/badge/Kilo_Code-blue)     | ✅     | Full support                   |
-| ![Roo Code](https://img.shields.io/badge/Roo_Code-orange)     | ✅     | Full support                   |
-| ![Goose](https://img.shields.io/badge/Goose-gray)             | ✅     | Full support                   |
-| ![Qoder](https://img.shields.io/badge/Qoder-pink)             | ✅     | Full support                   |
+| Agent                                                         | Status | Notes                            |
+| ------------------------------------------------------------- | ------ | -------------------------------- |
+| ![Claude Code](https://img.shields.io/badge/Claude_Code-blue) | ✅     | Full support (skills + commands) |
+| ![Cursor](https://img.shields.io/badge/Cursor-green)          | ✅     | Full support                     |
+| ![GitHub Copilot](https://img.shields.io/badge/Copilot-black) | ✅     | Full support                     |
+| ![Gemini CLI](https://img.shields.io/badge/Gemini-blue)       | ✅     | Full support                     |
+| ![Windsurf](https://img.shields.io/badge/Windsurf-cyan)       | ✅     | Full support                     |
+| ![Trae](https://img.shields.io/badge/Trae-purple)             | ✅     | Project-level only (SOLO mode)   |
+| ![Factory Droid](https://img.shields.io/badge/Factory-orange) | ✅     | Full support (skills + commands) |
+| ![Letta](https://img.shields.io/badge/Letta-teal)             | ✅     | Full support                     |
+| ![OpenCode](https://img.shields.io/badge/OpenCode-indigo)     | ✅     | Full support (skills + commands) |
+| ![Codex](https://img.shields.io/badge/Codex-green)            | ✅     | Full support                     |
+| ![Antigravity](https://img.shields.io/badge/Antigravity-red)  | ✅     | Full support                     |
+| ![Amp](https://img.shields.io/badge/Amp-yellow)               | ✅     | Full support                     |
+| ![Kilo Code](https://img.shields.io/badge/Kilo_Code-blue)     | ✅     | Full support                     |
+| ![Roo Code](https://img.shields.io/badge/Roo_Code-orange)     | ✅     | Full support                     |
+| ![Goose](https://img.shields.io/badge/Goose-gray)             | ✅     | Full support                     |
+| ![Qoder](https://img.shields.io/badge/Qoder-pink)             | ✅     | Full support                     |
 
-Missing an agent? [Create an issue](https://github.com/compilecafe/sena/issues)
+Missing an agent? [Create an issue](https://github.com/senahq/sena/issues)
 
 ## Installation
 
@@ -163,7 +163,7 @@ Options:
 
 ### `sena list`
 
-List all installed skills.
+List all installed skills and commands.
 
 ```bash
 sena list
@@ -239,6 +239,37 @@ sena add expo/skills -s pr-reviewer -g -a copilot -f
 | Goose         | `.goose/skills/<name>/`    | `~/.config/goose/skills/<name>/`       |
 | Qoder         | `.qoder/skills/<name>/`    | `~/.qoder/skills/<name>/`              |
 
+## Commands (Experimental) {#commands-experimental}
+
+> **Warning:** The commands feature is highly experimental and subject to change or removal in future releases. Unlike skills which follow the [Agent Skills](https://agentskills.io) open standard, commands have no standard yet. Each agent implements commands differently, and sena's command support may evolve significantly as standards emerge.
+
+### Command Types
+
+| Type       | Status            | Agents                       |
+| ---------- | ----------------- | ---------------------------- |
+| Markdown   | Supported         | Claude Code, OpenCode, Droid |
+| JSON       | Not supported yet | OpenCode only                |
+| Executable | Not supported yet | Factory Droid only           |
+
+### Markdown Compatibility
+
+| Feature         | Claude Code | OpenCode | Factory Droid |
+| --------------- | ----------- | -------- | ------------- |
+| `$ARGUMENTS`    | ✅          | ✅       | ✅            |
+| `$1`, `$2`...   | ✅          | ✅       | ❌            |
+| Bash `!command` | ✅          | ✅       | ❌            |
+| File refs `@`   | ✅          | ✅       | ❌            |
+| `allowed-tools` | ✅          | ❌       | ❌            |
+| `hooks`         | ✅          | ❌       | ❌            |
+
+### Where Commands Go
+
+| Agent         | Project Level                  | Global Level (`--global`)               |
+| ------------- | ------------------------------ | --------------------------------------- |
+| Claude Code   | `.claude/commands/<name>.md`   | `~/.claude/commands/<name>.md`          |
+| OpenCode      | `.opencode/commands/<name>.md` | `~/.config/opencode/commands/<name>.md` |
+| Factory Droid | `.factory/commands/<name>.md`  | `~/.factory/commands/<name>.md`         |
+
 ## Creating Skills
 
 Skills follow the [Agent Skills](https://agentskills.io) open standard. A skill is a folder with a `SKILL.md` file:
@@ -278,14 +309,17 @@ The CLI automatically searches:
 **Agent-specific:**
 
 - `.claude/skills/`
+- `.claude/commands/`
 - `.cursor/skills/`
 - `.github/skills/`
 - `.gemini/skills/`
 - `.windsurf/skills/`
 - `.trae/skills/`
 - `.factory/skills/`
+- `.factory/commands/`
 - `.skills/` (Letta)
 - `.opencode/skill/`
+- `.opencode/commands/`
 - `.codex/skills/`
 - `.agent/skills/`
 - `.agents/skills/`
@@ -337,23 +371,17 @@ Commit `skills.lock` for team consistency. New contributors run `sena update` to
 ```
 
 1. **Clone** source repository (branch/subpath support)
-2. **Discover** all `SKILL.md` files
+2. **Discover** all `SKILL.md` and command files
 3. **Detect** installed agents automatically
 4. **Install** to agent-specific directories
 5. **Track** state for updates and management
 
 ## Troubleshooting
 
-### No skills found
+### No skills or commands found
 
-Ensure `SKILL.md` follows the format:
-
-```markdown
----
-name: my-skill
-description: What it does
----
-```
+- Skills: Ensure `SKILL.md` follows the format with `name` and `description` fields
+- Commands: Ensure `.md` files are in a `commands/` folder
 
 ### Permission denied
 

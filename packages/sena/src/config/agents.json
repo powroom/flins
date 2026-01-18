@@ -4,14 +4,18 @@
     "displayName": "OpenCode",
     "configDir": "~/.config/opencode",
     "skillsDir": ".opencode/skill",
-    "globalSkillsDir": "~/.config/opencode/skill"
+    "globalSkillsDir": "~/.config/opencode/skill",
+    "commandsDir": ".opencode/command",
+    "globalCommandsDir": "~/.config/opencode/command"
   },
   "claude-code": {
     "name": "claude-code",
     "displayName": "Claude Code",
     "configDir": "~/.claude",
     "skillsDir": ".claude/skills",
-    "globalSkillsDir": "~/.claude/skills"
+    "globalSkillsDir": "~/.claude/skills",
+    "commandsDir": ".claude/commands",
+    "globalCommandsDir": "~/.claude/commands"
   },
   "codex": {
     "name": "codex",
@@ -95,7 +99,9 @@
     "displayName": "Factory Droid",
     "configDir": "~/.factory",
     "skillsDir": ".factory/skills",
-    "globalSkillsDir": "~/.factory/skills"
+    "globalSkillsDir": "~/.factory/skills",
+    "commandsDir": ".factory/commands",
+    "globalCommandsDir": "~/.factory/commands"
   },
   "letta": {
     "name": "letta",
