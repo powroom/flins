@@ -1,6 +1,6 @@
 {
-  "short_name": "TanStack App",
-  "name": "Create TanStack App Sample",
+  "short_name": "flins",
+  "name": "flins · Universal skill and command manager for AI coding agents",
   "icons": [
     {
       "src": "favicon.ico",
