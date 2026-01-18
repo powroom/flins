@@ -1,7 +1,13 @@
 import { Link, createFileRoute, useNavigate } from '@tanstack/react-router'
 import { useMemo, useRef } from 'react'
 import { SiGithub } from '@icons-pack/react-simple-icons'
-import { CheckIcon, CopyIcon, PlusIcon, SearchIcon } from 'lucide-react'
+import {
+  CheckIcon,
+  CopyIcon,
+  PlusIcon,
+  SearchIcon,
+  GitPullRequestIcon,
+} from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import {
   InputGroup,
@@ -80,7 +86,7 @@ export const Route = createFileRoute('/')({
       {
         name: 'description',
         content:
-          'Discover and install skills for Claude Code, Cursor, Copilot, Gemini, Windsurf, Trae, Factory, Letta, and 10+ more AI coding agents. One universal installer for all your AI development tools.',
+          'Universal skill package manager for AI coding agents. Install, manage, and update skills across 15+ AI development tools.',
       },
       // Open Graph
       {
@@ -90,7 +96,7 @@ export const Route = createFileRoute('/')({
       {
         property: 'og:description',
         content:
-          'Install skills across 16+ AI coding agents from one unified interface. Boost your AI productivity with custom skills.',
+          'Universal skill package manager for AI coding agents. Install, manage, and update skills across 15+ AI development tools.',
       },
       { property: 'og:type', content: 'website' },
       { property: 'og:url', content: 'https://sena.website' },
@@ -105,7 +111,7 @@ export const Route = createFileRoute('/')({
       {
         name: 'twitter:description',
         content:
-          'Install skills across 16+ AI coding agents. One installer for Claude Code, Cursor, Copilot, Gemini, and more.',
+          'Universal skill package manager for AI coding agents. Install, manage, and update skills across 15+ AI development tools.',
       },
       {
         name: 'twitter:image',
@@ -228,17 +234,36 @@ function App() {
           <PlusIcon className="absolute text-muted-foreground bottom-0 left-0 -translate-x-1/2 translate-y-1/2" />
           <PlusIcon className="absolute text-muted-foreground bottom-0 right-0 translate-x-1/2 translate-y-1/2" />
 
-          <div className="flex flex-col">
-            <h1 className="text-2xl font-bold">Supercharge your coding AI</h1>
-            <p>
-              Discover skills from any git repository for any coding AI agents
-            </p>
+          <div className="flex flex-col gap-4">
+            <div className="flex flex-col gap-1">
+              <h1 className="text-2xl font-bold">
+                Universal skill package manager for AI coding agents
+              </h1>
+              <p>
+                Install, manage, and update skills across 15+ AI development
+                tools from one unified interface
+              </p>
+            </div>
+            <div className="border bg-muted/30 p-4 rounded-lg">
+              <p className="text-muted-foreground mb-2">
+                Quick install from curated list:
+              </p>
+              <code className="text-sm">sena add expo</code>
+              <p className="text-muted-foreground mt-3 mb-2">
+                Or from any git repository:
+              </p>
+              <div className="flex flex-col gap-1">
+                <code className="text-sm">sena add github.com/user/repo</code>
+                <code className="text-sm">sena add gitlab.com/org/skills</code>
+                <code className="text-sm">sena add any-git-host.com/repo</code>
+              </div>
+            </div>
           </div>
 
           <InputGroup className="mt-6 mb-8">
             <InputGroupInput
-              aria-label="Search"
-              placeholder="Search"
+              aria-label="Search skills"
+              placeholder="Search skills..."
               type="search"
               value={searchParams.search ?? ''}
               onInput={(e) =>
@@ -385,6 +410,23 @@ function App() {
               </div>
             </div>
             <div className="space-y-2 w-full">
+              <div className="flex items-center justify-between gap-4">
+                <h2 className="font-semibold">Curated Skills</h2>
+                <Button
+                  size="sm"
+                  variant="outline"
+                  render={
+                    <a
+                      href="https://github.com/senahq/sena"
+                      target="_blank"
+                      rel="noopener noreferrer"
+                    />
+                  }
+                >
+                  <GitPullRequestIcon />
+                  Submit yours
+                </Button>
+              </div>
               {skills.map((skill) => (
                 <div
                   key={skill.name}
