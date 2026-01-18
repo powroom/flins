@@ -1,3 +1,5 @@
+Use Bun instead of npm, pnpm, or yarn.
+
 ## Plan Mode
 
 * Produce extremely concise plans.
