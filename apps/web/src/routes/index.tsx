@@ -1,6 +1,6 @@
 import { Link, createFileRoute, useNavigate } from '@tanstack/react-router'
 import { useMemo, useRef } from 'react'
-import { SiGithub } from '@icons-pack/react-simple-icons'
+import { SiDiscord, SiGithub } from '@icons-pack/react-simple-icons'
 import {
   CheckIcon,
   CopyIcon,
@@ -34,6 +34,7 @@ import { z } from 'zod'
 import { useCopyToClipboard } from '@/hooks/use-copy-to-clipboard'
 import { Tooltip, TooltipPopup, TooltipTrigger } from '@/components/ui/tooltip'
 import { SUPPORTED_AGENTS } from '@/config/agents'
+import logo from '../logo.svg'
 
 export const Route = createFileRoute('/')({
   component: App,
@@ -83,7 +84,10 @@ export const Route = createFileRoute('/')({
   },
   head: () => ({
     meta: [
-      { title: 'flins · Universal skill and command manager for AI coding agents' },
+      {
+        title:
+          'flins · Universal skill and command manager for AI coding agents',
+      },
       {
         name: 'description',
         content:
@@ -92,7 +96,8 @@ export const Route = createFileRoute('/')({
       // Open Graph
       {
         property: 'og:title',
-        content: 'flins · Universal skill and command manager for AI coding agents',
+        content:
+          'flins · Universal skill and command manager for AI coding agents',
       },
       {
         property: 'og:description',
@@ -107,7 +112,8 @@ export const Route = createFileRoute('/')({
       { name: 'twitter:card', content: 'summary_large_image' },
       {
         name: 'twitter:title',
-        content: 'flins · Universal skill and command manager for AI coding agents',
+        content:
+          'flins · Universal skill and command manager for AI coding agents',
       },
       {
         name: 'twitter:description',
@@ -215,14 +221,38 @@ function App() {
     <>
       <header className="border-b">
         <div className="max-w-4xl border-x px-8 mx-auto h-14 flex items-center justify-between">
-          <Link to="/">flins</Link>
-          <a
-            href="https://github.com/flinstech/flins"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <SiGithub />
-          </a>
+          <Link to="/" className="flex items-center gap-2 text-2xl">
+            <img className="size-6" src={logo} alt="flins logo" />
+            flins
+          </Link>
+          <div className="flex">
+            <Button
+              variant="ghost"
+              size="icon-xl"
+              render={
+                <a
+                  href="https://discord.gg/a8dEPa7eNs"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                />
+              }
+            >
+              <SiDiscord />
+            </Button>
+            <Button
+              variant="ghost"
+              size="icon-xl"
+              render={
+                <a
+                  href="https://github.com/flinstech/flins"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                />
+              }
+            >
+              <SiGithub />
+            </Button>
+          </div>
         </div>
       </header>
 
