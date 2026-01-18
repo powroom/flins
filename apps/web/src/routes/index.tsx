@@ -220,7 +220,7 @@ function App() {
   return (
     <>
       <header className="border-b">
-        <div className="max-w-4xl border-x px-8 mx-auto h-14 flex items-center justify-between">
+        <div className="max-w-7xl border-x px-8 mx-auto h-14 flex items-center justify-between">
           <Link to="/" className="flex items-center gap-2 text-2xl">
             <img className="size-6" src={logo} alt="flins logo" />
             flins
@@ -257,7 +257,7 @@ function App() {
       </header>
 
       <main>
-        <div className="max-w-4xl mx-auto px-8 py-8 border-x flex flex-col relative">
+        <div className="max-w-7xl mx-auto px-8 py-8 border-x flex flex-col relative">
           <PlusIcon className="absolute text-muted-foreground top-0 left-0 -translate-x-1/2 -translate-y-1/2" />
           <PlusIcon className="absolute text-muted-foreground top-0 right-0 translate-x-1/2 -translate-y-1/2" />
           <PlusIcon className="absolute text-muted-foreground bottom-0 left-0 -translate-x-1/2 translate-y-1/2" />
@@ -549,7 +549,7 @@ function App() {
       </main>
 
       <footer className="border-t">
-        <div className="max-w-4xl border-x px-8 mx-auto py-4 flex items-center justify-between">
+        <div className="max-w-7xl border-x px-8 mx-auto py-4 flex items-center justify-between">
           <div className="flex flex-col gap-1">
             <Link to="/">flins</Link>
             <p className="text-muted-foreground text-sm">
