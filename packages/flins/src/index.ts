@@ -9,6 +9,14 @@ import { removeCommand, type RemoveOptions } from "@/cli/commands/remove";
 import { listCommand } from "@/cli/commands/list";
 import { searchCommand } from "@/cli/commands/search";
 import { cleanCommand, type CleanOptions } from "@/cli/commands/clean";
+import { checkForUpdates } from "@/services/update-notifier";
+
+let isSilent = false;
+
+program.hook("preAction", (thisCommand) => {
+  const opts = thisCommand.opts();
+  if (opts.silent) isSilent = true;
+});
 
 const version = packageJson.version;
 
@@ -93,3 +101,5 @@ program
   });
 
 program.parse();
+
+checkForUpdates(isSilent);
