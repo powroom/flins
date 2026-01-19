@@ -26,7 +26,7 @@ import {
   ComboboxPopup,
   ComboboxValue,
 } from '@/components/ui/combobox'
-import { Field, FieldLabel } from '@/components/ui/field'
+import { Field, FieldDescription, FieldLabel } from '@/components/ui/field'
 import { CodeBlockCommand } from '@/components/code-block-command'
 import directory from '../directory.json'
 import { zodValidator } from '@tanstack/zod-adapter'
@@ -272,6 +272,44 @@ function App() {
                 Install, manage, and update skills and commands across 16+ AI
                 development tools from one unified interface
               </p>
+              <Field className="max-w-max mx-auto items-center">
+                <InputGroup>
+                  <InputGroupInput
+                    className="font-mono"
+                    aria-label="Global install command"
+                    value="npm i -g flins"
+                    ref={inputRef}
+                    readOnly
+                    type="text"
+                  />
+                  <InputGroupAddon align="inline-end">
+                    <Tooltip>
+                      <TooltipTrigger
+                        render={
+                          <Button
+                            aria-label="Copy"
+                            onClick={() => {
+                              if (inputRef.current) {
+                                copyToClipboard(inputRef.current.value)
+                              }
+                            }}
+                            size="icon-xs"
+                            variant="ghost"
+                          />
+                        }
+                      >
+                        {isCopied ? <CheckIcon /> : <CopyIcon />}
+                      </TooltipTrigger>
+                      <TooltipPopup>
+                        <p>Copy to clipboard</p>
+                      </TooltipPopup>
+                    </Tooltip>
+                  </InputGroupAddon>
+                </InputGroup>
+                <FieldDescription className="text-sm">
+                  Install flins globally (optional)
+                </FieldDescription>
+              </Field>
             </div>
             <div className="flex flex-wrap gap-1 justify-center">
               {SUPPORTED_AGENTS.map((agent) => (
@@ -340,42 +378,6 @@ function App() {
           <div className="flex md:flex-row flex-col gap-8">
             <div className="md:w-70 shrink-0">
               <div className="sticky top-4 space-y-6">
-                <Field>
-                  <FieldLabel>Install flins globally (optional)</FieldLabel>
-                  <InputGroup>
-                    <InputGroupInput
-                      className="font-mono"
-                      aria-label="Global install command"
-                      value="npm i -g flins"
-                      ref={inputRef}
-                      readOnly
-                      type="text"
-                    />
-                    <InputGroupAddon align="inline-end">
-                      <Tooltip>
-                        <TooltipTrigger
-                          render={
-                            <Button
-                              aria-label="Copy"
-                              onClick={() => {
-                                if (inputRef.current) {
-                                  copyToClipboard(inputRef.current.value)
-                                }
-                              }}
-                              size="icon-xs"
-                              variant="ghost"
-                            />
-                          }
-                        >
-                          {isCopied ? <CheckIcon /> : <CopyIcon />}
-                        </TooltipTrigger>
-                        <TooltipPopup>
-                          <p>Copy to clipboard</p>
-                        </TooltipPopup>
-                      </Tooltip>
-                    </InputGroupAddon>
-                  </InputGroup>
-                </Field>
                 <Field>
                   <FieldLabel>Quick install from curated list:</FieldLabel>
                   <code className="text-xs">flins add expo</code>
