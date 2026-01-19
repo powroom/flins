@@ -224,3 +224,38 @@ export function findLocalSkillInstallations(
 
   return installations;
 }
+
+export async function cleanOrphanedEntries(cwd?: string): Promise<void> {
+  const state = loadLocalState(cwd);
+  if (!state) return;
+
+  const orphanedKeys: string[] = [];
+
+  for (const [key, _entry] of Object.entries(state.skills)) {
+    const parsed = key.split(":");
+    if (parsed.length !== 2) continue;
+
+    const installableType = parsed[0] === "skill" ? "skill" : "command";
+    const name = parsed[1]!;
+    const installations = findLocalSkillInstallations(name, installableType, cwd);
+
+    if (installations.length === 0) {
+      orphanedKeys.push(key);
+    }
+  }
+
+  for (const key of orphanedKeys) {
+    delete state.skills[key];
+  }
+
+  if (orphanedKeys.length > 0) {
+    if (Object.keys(state.skills).length > 0) {
+      saveLocalState(state, cwd);
+    } else {
+      const statePath = getLocalStatePath(cwd);
+      if (existsSync(statePath)) {
+        rmSync(statePath, { force: true });
+      }
+    }
+  }
+}

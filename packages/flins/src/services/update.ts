@@ -14,7 +14,7 @@ import { installCommandForAgent } from "@/infrastructure/command-installer";
 import {
   getAllSkills,
   updateSkillCommit,
-  cleanOrphanedEntries,
+  cleanOrphanedEntries as cleanGlobalOrphanedEntries,
   findGlobalSkillInstallations,
   removeSkill,
 } from "@/core/state/global";
@@ -22,6 +22,7 @@ import {
   getAllLocalSkills,
   findLocalSkillInstallations,
   updateLocalSkillCommit,
+  cleanOrphanedEntries as cleanLocalOrphanedEntries,
 } from "@/core/state/local";
 import { parseKey } from "@/types/state";
 import type { InstallableType } from "@/types/skills";
@@ -518,6 +519,11 @@ export async function cleanOrphaned(
 ): Promise<void> {
   const spinner = p.spinner();
   spinner.start("Checking for orphaned entries...");
-  await cleanOrphanedEntries();
+
+  await Promise.all([
+    cleanGlobalOrphanedEntries(),
+    cleanLocalOrphanedEntries(),
+  ]);
+
   spinner.stop(pc.green("State cleaned up"));
 }
