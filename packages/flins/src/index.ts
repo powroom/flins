@@ -20,12 +20,22 @@ program.hook("preAction", (thisCommand) => {
 
 const version = packageJson.version;
 
+const logo = `
+███████╗██╗     ██╗███╗  ██╗ ██████╗
+██╔════╝██║     ██║████╗ ██║██╔════╝
+█████╗  ██║     ██║██╔██╗██║╚█████╗ 
+██╔══╝  ██║     ██║██║╚████║ ╚═══██╗
+██║     ███████╗██║██║ ╚███║██████╔╝
+╚═╝     ╚══════╝╚═╝╚═╝  ╚══╝╚═════╝ 
+`;
+
 program
   .name("flins")
   .description(
     "Universal skill package manager for AI coding agents. Install, manage, and update custom skills across Claude Code, Cursor, Copilot, Gemini, Windsurf, Trae, Factory, Letta, OpenCode, Codex, and 8+ more AI development tools from a single unified interface.",
   )
   .version(version)
+  .addHelpText("beforeAll", logo)
   .action(() => {
     program.help();
   });
