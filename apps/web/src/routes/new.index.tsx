@@ -163,7 +163,31 @@ function App() {
             <img className="size-6" src={logo} alt="flins logo" />
             flins
           </Link>
-          <div className="flex">
+          <div className="flex items-center">
+            <Button
+              variant="ghost"
+              render={
+                <a
+                  href="https://discord.gg/a8dEPa7eNs"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                />
+              }
+            >
+              Directory
+            </Button>
+            <Button
+              variant="ghost"
+              render={
+                <a
+                  href="https://discord.gg/a8dEPa7eNs"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                />
+              }
+            >
+              Docs
+            </Button>
             <Button
               variant="ghost"
               size="icon-xl"
@@ -193,6 +217,15 @@ function App() {
           </div>
         </div>
       </header>
+
+      <div className="border-y">
+        <div className="max-w-7xl mx-auto border-x flex flex-col relative h-20">
+          <PlusIcon className="absolute text-neutral-300 z-10 top-0 left-0 -translate-x-1/2 -translate-y-1/2" />
+          <PlusIcon className="absolute text-neutral-300 z-10 top-0 right-0 translate-x-1/2 -translate-y-1/2" />
+          <PlusIcon className="absolute text-neutral-300 z-10 bottom-0 left-0 -translate-x-1/2 translate-y-1/2" />
+          <PlusIcon className="absolute text-neutral-300 z-10 bottom-0 right-0 translate-x-1/2 translate-y-1/2" />
+        </div>
+      </div>
 
       <main>
         <div className="max-w-7xl mx-auto border-x border-b flex flex-col relative">
