@@ -393,6 +393,24 @@ function App() {
                   </div>
                 </Field>
                 <Field>
+                  <FieldLabel>Available commands:</FieldLabel>
+                  <div className="flex flex-wrap items-center gap-1">
+                    <code className="text-xs">flins add</code>
+                    <code className="text-xs">·</code>
+                    <code className="text-xs">flins update</code>
+                    <code className="text-xs">·</code>
+                    <code className="text-xs">flins remove</code>
+                    <code className="text-xs">·</code>
+                    <code className="text-xs">flins outdated</code>
+                    <code className="text-xs">·</code>
+                    <code className="text-xs">flins clean</code>
+                    <code className="text-xs">·</code>
+                    <code className="text-xs">flins list</code>
+                    <code className="text-xs">·</code>
+                    <code className="text-xs">flins search</code>
+                  </div>
+                </Field>
+                <Field>
                   <FieldLabel>Author</FieldLabel>
                   <Combobox
                     items={authorItems}
