@@ -2,12 +2,12 @@
   "version": "1.0.0",
   "skills": {
     "skill:clack-guidelines": {
-      "url": "https://github.com/senahq/skills.git",
+      "url": "https://github.com/flinstech/skills.git",
       "branch": "main",
       "commit": "133352b14db9f400d43d554c30eb54f849c8a71a"
     },
     "skill:commander-guidelines": {
-      "url": "https://github.com/senahq/skills.git",
+      "url": "https://github.com/flinstech/skills.git",
       "branch": "main",
       "commit": "133352b14db9f400d43d554c30eb54f849c8a71a"
     }
