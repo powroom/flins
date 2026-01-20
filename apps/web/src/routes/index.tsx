@@ -63,7 +63,7 @@ export const Route = createFileRoute('/')({
       {
         name: 'description',
         content:
-          'flins · Universal skill and command manager for AI coding agents. Directory of curated skills for Claude Code, Cursor, Copilot, Windsurf, Gemini CLI, and 11+ more AI development tools. Install, manage, and update skills from one unified CLI.',
+          'Install and manage AI agent skills from one CLI. flins works with Claude Code, Cursor, Copilot, Windsurf, Gemini CLI, and 11 more AI coding tools. Browse the official skills directory.',
       },
       // Open Graph
       {
@@ -74,7 +74,7 @@ export const Route = createFileRoute('/')({
       {
         property: 'og:description',
         content:
-          'Universal skill and command manager for AI coding agents. Directory of curated skills for Claude Code, Cursor, Copilot, Windsurf, Gemini CLI, and 11+ more AI development tools. Install, manage, and update skills from one unified CLI.',
+          'Install and manage AI agent skills from one CLI. flins works with Claude Code, Cursor, Copilot, Windsurf, Gemini CLI, and 11 more AI coding tools. Browse the official skills directory.',
       },
       { property: 'og:type', content: 'website' },
       { property: 'og:url', content: 'https://flins.tech' },
@@ -90,15 +90,9 @@ export const Route = createFileRoute('/')({
       {
         name: 'twitter:description',
         content:
-          'Universal skill and command manager for AI coding agents. Directory of curated skills for Claude Code, Cursor, Copilot, Windsurf, Gemini CLI, and 11+ more AI development tools. Install, manage, and update skills from one unified CLI.',
+          'Install and manage AI agent skills from one CLI. flins works with Claude Code, Cursor, Copilot, Windsurf, Gemini CLI, and 11 more AI coding tools. Browse the official skills directory.',
       },
       { name: 'twitter:image', content: 'https://flins.tech/og.png' },
-      // Additional SEO
-      {
-        name: 'keywords',
-        content:
-          'AI coding agents, universal skill manager, command manager, curated skills directory, Claude Code skills, Cursor skills, Copilot skills, GitHub Copilot extensions, AI developer tools, code assistant, AI skills marketplace, Windsurf skills, Gemini CLI skills, agent commands, CLI tools, AI coding assistant, developer productivity, skills repository, command palette, AI extensions',
-      },
       { name: 'author', content: 'flinstech' },
       { name: 'robots', content: 'index, follow' },
     ],
@@ -116,7 +110,7 @@ export const Route = createFileRoute('/')({
           '@type': 'SoftwareApplication',
           name: 'flins',
           description:
-            'flins · Universal skill and command manager for AI coding agents. Directory of curated skills for Claude Code, Cursor, GitHub Copilot, Windsurf, Gemini CLI, and 11+ more AI development tools. Install, manage, and update skills from one unified CLI interface.',
+            'flins · Universal agent skills manager for AI coding tools. Install and manage skills for Claude Code, Cursor, Copilot, Windsurf, Gemini CLI, and 11 more from one unified CLI. Browse the official skills directory.',
           url: 'https://flins.tech',
           applicationCategory: 'DeveloperApplication',
           operatingSystem: 'macOS, Linux, Windows',
@@ -131,15 +125,30 @@ export const Route = createFileRoute('/')({
             url: 'https://github.com/flinstech',
           },
           keywords: [
-            'AI',
-            'coding agents',
-            'skills',
-            'commands',
-            'Claude Code',
-            'Cursor',
-            'Copilot',
-            'developer tools',
+            'agent skills',
+            'Claude Code skills',
+            'Cursor skills',
+            'Copilot skills',
+            'AI coding agents',
+            'Windsurf skills',
+            'Gemini CLI skills',
+            'Trae skills',
+            'Factory Droid skills',
+            'Letta skills',
+            'OpenCode skills',
+            'Codex skills',
+            'Antigravity skills',
+            'Amp skills',
+            'Kilo Code skills',
+            'Roo Code skills',
+            'Goose skills',
+            'Qoder skills',
+            'AI developer tools',
+            'skills manager',
             'CLI',
+            'command palette',
+            'AI extensions',
+            'flins',
           ],
           aggregateRating: {
             '@type': 'AggregateRating',
