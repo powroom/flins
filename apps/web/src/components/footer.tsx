@@ -1,18 +1,11 @@
 import { SiGithub } from '@icons-pack/react-simple-icons'
 import { Link } from '@tanstack/react-router'
-import { PlusIcon } from 'lucide-react'
+import SectionDivider from './section-divider'
 
 const Footer = () => {
   return (
     <>
-      <div className="border-y">
-        <div className="max-w-7xl mx-auto border-x flex flex-col relative h-20">
-          <PlusIcon className="absolute text-neutral-300 z-10 top-0 left-0 -translate-x-1/2 -translate-y-1/2" />
-          <PlusIcon className="absolute text-neutral-300 z-10 top-0 right-0 translate-x-1/2 -translate-y-1/2" />
-          <PlusIcon className="absolute text-neutral-300 z-10 bottom-0 left-0 -translate-x-1/2 translate-y-1/2" />
-          <PlusIcon className="absolute text-neutral-300 z-10 bottom-0 right-0 translate-x-1/2 translate-y-1/2" />
-        </div>
-      </div>
+      <SectionDivider />
 
       <footer className="border-t">
         <div className="max-w-7xl border-x px-8 mx-auto py-4 flex items-center justify-between">
@@ -26,8 +19,9 @@ const Footer = () => {
             href="https://github.com/flinstech/flins"
             target="_blank"
             rel="noopener noreferrer"
+            aria-label="View source on GitHub (opens in new tab)"
           >
-            <SiGithub />
+            <SiGithub aria-hidden="true" />
           </a>
         </div>
       </footer>

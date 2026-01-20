@@ -30,6 +30,7 @@ import { CodeBlockCommand } from '@/components/code-block-command'
 import directory from '../directory.json'
 import { zodValidator } from '@tanstack/zod-adapter'
 import { z } from 'zod'
+import SectionDivider from '@/components/section-divider'
 
 export const Route = createFileRoute('/directory')({
   component: App,
@@ -209,7 +210,10 @@ function App() {
     <>
       <main>
         <div className="max-w-7xl min-h-80 p-8 justify-center h-full mx-auto border-x border-b flex flex-col relative">
-          <PlusIcon className="absolute text-neutral-300 z-10 top-0 left-0 -translate-x-1/2 -translate-y-1/2" />
+          <PlusIcon
+            aria-hidden="true"
+            className="absolute text-neutral-300 z-10 top-0 left-0 -translate-x-1/2 -translate-y-1/2"
+          />
           <PlusIcon className="absolute text-neutral-300 z-10 top-0 right-0 translate-x-1/2 -translate-y-1/2" />
           <PlusIcon className="absolute text-neutral-300 z-10 bottom-0 left-0 -translate-x-1/2 translate-y-1/2" />
           <PlusIcon className="absolute text-neutral-300 z-10 bottom-0 right-0 translate-x-1/2 translate-y-1/2" />
@@ -339,14 +343,7 @@ function App() {
         )}
       </div>
 
-      <div className="border-y">
-        <div className="max-w-7xl mx-auto border-x flex flex-col relative h-20">
-          <PlusIcon className="absolute text-neutral-300 z-10 top-0 left-0 -translate-x-1/2 -translate-y-1/2" />
-          <PlusIcon className="absolute text-neutral-300 z-10 top-0 right-0 translate-x-1/2 -translate-y-1/2" />
-          <PlusIcon className="absolute text-neutral-300 z-10 bottom-0 left-0 -translate-x-1/2 translate-y-1/2" />
-          <PlusIcon className="absolute text-neutral-300 z-10 bottom-0 right-0 translate-x-1/2 translate-y-1/2" />
-        </div>
-      </div>
+      <SectionDivider />
 
       <div className="max-w-7xl mx-auto border-x p-8 text-center">
         <h2 className="text-4xl mb-4">Have a skill to share?</h2>

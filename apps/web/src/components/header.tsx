@@ -14,7 +14,7 @@ const Header = () => {
             <img className="size-6" src={logo} alt="flins logo" />
             flins
           </Link>
-          <div className="flex items-center">
+          <nav aria-label="Main navigation" className="flex items-center">
             <Button variant="ghost" render={<Link to="/directory" />}>
               Directory
             </Button>
@@ -29,11 +29,12 @@ const Header = () => {
               }
             >
               Docs
-              <ArrowUpRightIcon />
+              <ArrowUpRightIcon aria-hidden="true" />
             </Button>
             <Button
               variant="ghost"
               size="icon-xl"
+              aria-label="Join Discord community (opens in new tab)"
               render={
                 <a
                   href="https://discord.gg/a8dEPa7eNs"
@@ -47,6 +48,7 @@ const Header = () => {
             <Button
               variant="ghost"
               size="icon-xl"
+              aria-label="View source on GitHub (opens in new tab)"
               render={
                 <a
                   href="https://github.com/flinstech/flins"
@@ -57,7 +59,7 @@ const Header = () => {
             >
               <SiGithub />
             </Button>
-          </div>
+          </nav>
         </div>
       </header>
 

@@ -51,7 +51,7 @@ export function CodeBlockCommand({
         value={packageManager}
       >
         <div className="flex items-center gap-2 border-border/64 border-b px-4 py-1 font-mono">
-          <TerminalIcon className="size-4" />
+          <TerminalIcon aria-hidden="true" className="size-4" />
           <TabsList className="bg-transparent p-0 *:data-[slot=tab-indicator]:rounded-lg *:data-[slot=tab-indicator]:bg-accent *:data-[slot=tab-indicator]:shadow-none">
             {Object.entries(tabs).map(([key]) => {
               return (
