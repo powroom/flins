@@ -13,9 +13,9 @@ const COMMANDS = [
 const PACKAGE_MANAGERS = {
   flins: { prefix: 'flins', label: 'flins' },
   npm: { prefix: 'npx flins@latest', label: 'npm' },
-  bun: { prefix: 'bunx --bun flins@latest', label: 'bun' },
-  pnpm: { prefix: 'pnpm dlx flins@latest', label: 'pnpm' },
-  yarn: { prefix: 'yarn dlx flins@latest', label: 'yarn' },
+  bun: { prefix: 'bunx flins', label: 'bun' },
+  pnpm: { prefix: 'pnpm dlx flins', label: 'pnpm' },
+  yarn: { prefix: 'yarn dlx flins', label: 'yarn' },
 } as const
 
 function TerminalLine({ command }: { command: string }) {
