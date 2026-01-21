@@ -1,5 +1,5 @@
 import { mkdir, cp, access, readdir, symlink, rm } from "fs/promises";
-import { join, resolve } from "path";
+import { join, relative, dirname } from "path";
 import { getSkillsSourceDir, getCommandsSourceDir } from "@/utils/paths";
 
 export const EXCLUDE_FILES = new Set(["README.md", "metadata.json"]);
@@ -69,7 +69,7 @@ export async function installSkillAsSymlink(
     const targetParent = join(targetDir, "..");
     await mkdir(targetParent, { recursive: true });
     await rm(targetDir, { recursive: true, force: true });
-    await symlink(resolve(sourceStorePath), targetDir);
+    await symlink(relative(targetParent, sourceStorePath), targetDir);
 
     return {
       success: true,
@@ -98,10 +98,10 @@ export async function installCommandAsSymlink(
     await rm(sourceStorePath, { force: true });
     await cp(sourcePath, sourceStorePath);
 
-    const targetParent = join(targetPath, "..");
+    const targetParent = dirname(targetPath);
     await mkdir(targetParent, { recursive: true });
     await rm(targetPath, { force: true });
-    await symlink(resolve(sourceStorePath), targetPath);
+    await symlink(relative(targetParent, sourceStorePath), targetPath);
 
     return {
       success: true,
