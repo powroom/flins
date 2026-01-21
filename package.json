@@ -3,10 +3,15 @@
   "module": "index.ts",
   "type": "module",
   "private": true,
-  "workspaces": [
-    "packages/*",
-    "apps/*"
-  ],
+  "workspaces": {
+    "packages": [
+      "packages/*",
+      "apps/*"
+    ],
+    "catalog": {
+      "@typescript/native-preview": "^7.0.0-dev.20260116.1"
+    }
+  },
   "scripts": {
     "dev": "bun --filter '*' dev",
     "dev:web": "bun --filter 'web' dev",
