@@ -14,7 +14,8 @@ export type AgentType =
   | "trae"
   | "factory"
   | "letta"
-  | "qoder";
+  | "qoder"
+  | "qwen";
 
 export interface AgentConfig {
   name: string;

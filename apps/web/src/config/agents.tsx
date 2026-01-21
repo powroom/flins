@@ -65,4 +65,5 @@ export const SUPPORTED_AGENTS: Agent[] = [
     link: 'https://goose.ai/',
   },
   { name: 'Qoder', link: 'https://qoder.com/', logo: '/brands/qoder.png' },
+  { name: 'Qwen Code', logo: '/brands/qwen.png', link: 'https://qwenlm.github.io/qwen-code-docs/' },
 ]

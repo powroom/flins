@@ -116,5 +116,12 @@
     "configDir": "~/.qoder",
     "skillsDir": ".qoder/skills",
     "globalSkillsDir": "~/.qoder/skills"
+  },
+  "qwen": {
+    "name": "qwen",
+    "displayName": "Qwen Code",
+    "configDir": "~/.qwen",
+    "skillsDir": ".qwen/skills",
+    "globalSkillsDir": "~/.qwen/skills"
   }
 }

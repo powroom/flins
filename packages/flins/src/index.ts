@@ -32,7 +32,7 @@ const logo = `
 program
   .name("flins")
   .description(
-    "Universal skill package manager for AI coding agents. Install, manage, and update custom skills across Claude Code, Cursor, Copilot, Gemini, Windsurf, Trae, Factory, Letta, OpenCode, Codex, and 8+ more AI development tools from a single unified interface.",
+    "Universal skill package manager for AI coding agents. Install, manage, and update custom skills across Claude Code, Cursor, Copilot, Gemini, Windsurf, Trae, Factory, Letta, OpenCode, Codex, Qwen, and 8+ more AI development tools from a single unified interface.",
   )
   .version(version)
   .addHelpText("beforeAll", logo)
@@ -49,7 +49,7 @@ program
   .option("-g, --global", "Install skill globally (user-level) instead of project-level")
   .option(
     "-a, --agent <agents...>",
-    "Specify target agents (auto-detects if omitted). Supports: claude-code, cursor, copilot, gemini, windsurf, trae, factory, letta, opencode, codex, antigravity, amp, kilo, roo, goose, qoder",
+    "Specify target agents (auto-detects if omitted). Supports: claude-code, cursor, copilot, gemini, windsurf, trae, factory, letta, opencode, codex, antigravity, amp, kilo, roo, goose, qoder, qwen",
   )
   .option("-s, --skill <skills...>", "Install specific skills by name (skip interactive selection)")
   .option("-l, --list", "List all available skills in the source repository without installing")
