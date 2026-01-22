@@ -14,7 +14,10 @@ export async function installSkillForAgent(
   const targetPath = join(baseDir, skill.name);
 
   const result = options.symlink
-    ? await installSkillAsSymlink(skill.path, skill.name, targetPath, { global: options.global })
+    ? await installSkillAsSymlink(skill.path, skill.name, targetPath, {
+        global: options.global,
+        skillsDir: baseDir,
+      })
     : await installSkillFiles(skill.path, targetPath);
 
   return {

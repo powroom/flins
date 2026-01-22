@@ -210,11 +210,6 @@ async function selectSkills(skills: Skill[], options: Options): Promise<Skill[] 
         selectedSkills.length !== 1 ? "s" : ""
       }: ${selectedSkills.map((s) => pc.cyan(getSkillDisplayName(s))).join(", ")}`,
     );
-  } else if (skills.length === 1) {
-    selectedSkills = skills;
-    const firstSkill = skills[0]!;
-    p.log.info(`Skill: ${pc.cyan(getSkillDisplayName(firstSkill))}`);
-    p.log.message(pc.dim(firstSkill.description));
   } else if (options.yes || options.force) {
     selectedSkills = skills;
     p.log.info(`Installing all ${skills.length} skills`);
@@ -229,6 +224,7 @@ async function selectSkills(skills: Skill[], options: Options): Promise<Skill[] 
       message: "Choose skills to add",
       options: skillChoices,
       required: false,
+      initialValues: skills.length === 1 ? [skills[0]] : undefined,
     });
 
     if (p.isCancel(selected)) {
@@ -354,7 +350,7 @@ async function selectAgentsForSkills(
 
       return selected as AgentType[];
     }
-  } else if (installedAgents.length === 1 || options.yes || options.force) {
+  } else if (options.yes || options.force) {
     if (installedAgents.length === 1) {
       const firstAgent = installedAgents[0]!;
       p.log.info(`Installing skills to: ${pc.cyan(agents[firstAgent].displayName)}`);
@@ -377,7 +373,6 @@ async function selectAgentsForSkills(
       message: "Where should we install these?",
       options: agentChoices,
       required: true,
-      initialValues: installedAgents,
     });
 
     if (p.isCancel(selected)) {

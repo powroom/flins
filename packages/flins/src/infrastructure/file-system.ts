@@ -62,10 +62,10 @@ export async function installSkillAsSymlink(
   sourceDir: string,
   skillName: string,
   targetDir: string,
-  options: { global?: boolean } = {},
+  options: { global?: boolean; skillsDir?: string } = {},
 ): Promise<{ success: boolean; path: string; error?: string }> {
   return withErrorHandling(async () => {
-    const agentsSkillsDir = getSkillsSourceDir(options);
+    const agentsSkillsDir = options.skillsDir ?? getSkillsSourceDir(options);
     const sourceStorePath = join(agentsSkillsDir, skillName);
 
     await mkdir(agentsSkillsDir, { recursive: true });

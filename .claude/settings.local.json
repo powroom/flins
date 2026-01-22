@@ -9,7 +9,8 @@
       "Bash(bun run typecheck:*)",
       "Bash(bun run fmt:*)",
       "Bash(bun run lint:*)",
-      "Bash(tree:*)"
+      "Bash(tree:*)",
+      "Bash(find:*)"
     ]
   }
 }
