@@ -149,10 +149,6 @@ export async function performInstallation(
       return { success: false, installed: 0, failed: 0, results: [] };
     }
 
-    if (selectedCommands && selectedCommands.length > 0) {
-      p.log.warn(pc.yellow("Commands are experimental and may change"));
-    }
-
     context.spinner.start("Adding skills...");
     const results = await performParallelInstall(
       selectedSkills || [],
