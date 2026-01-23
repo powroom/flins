@@ -8,6 +8,8 @@ import { zodValidator } from '@tanstack/zod-adapter'
 import { z } from 'zod'
 import { SUPPORTED_AGENTS } from '@/config/agents'
 import SectionDivider from '@/components/section-divider'
+import { allPosts } from 'content-collections'
+import { ArrowRightIcon, CalendarIcon, UserIcon } from 'lucide-react'
 
 export const Route = createFileRoute('/')({
   component: App,
@@ -48,11 +50,16 @@ export const Route = createFileRoute('/')({
     const allAuthors = [...new Set(directory.map((skill) => skill.author))]
     const categories = [...new Set(directory.flatMap((skill) => skill.tags))]
 
+    const latestPosts = allPosts
+      .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
+      .slice(0, 3)
+
     return {
       skills,
       authors: allAuthors,
       categories,
       searchParams: { search, tags, authors },
+      latestPosts,
     }
   },
   head: () => ({
@@ -165,7 +172,17 @@ export const Route = createFileRoute('/')({
   }),
 })
 
+function formatDate(date: Date) {
+  return new Intl.DateTimeFormat('en-US', {
+    year: 'numeric',
+    month: 'long',
+    day: 'numeric',
+  }).format(date)
+}
+
 function App() {
+  const { latestPosts } = Route.useLoaderData()
+
   return (
     <>
       <main>
@@ -544,6 +561,62 @@ function App() {
                 </div>
               </div>
             </div>
+          </div>
+        </div>
+      </section>
+
+      <SectionDivider />
+
+      <section>
+        <div className="max-w-7xl mx-auto border-x flex flex-col relative">
+          <div className="p-8">
+            <h2 className="text-4xl">Blog</h2>
+            <p className="text-zinc-400 mt-1">
+              Updates, guides, and tips for AI agent workflows
+            </p>
+          </div>
+          {latestPosts.length > 0 ? (
+            <div className="grid grid-cols-1 md:grid-cols-3 divide-x divide-y border-y">
+              {latestPosts.map((post) => (
+                <article key={post._meta.path} className="p-8 group">
+                  <Link
+                    to="/blog/$slug"
+                    params={{ slug: post._meta.path }}
+                    className="block"
+                  >
+                    <div className="flex items-center gap-4 text-sm text-muted-foreground mb-3">
+                      <span className="flex items-center gap-1.5">
+                        <CalendarIcon className="size-3.5" />
+                        {formatDate(post.date)}
+                      </span>
+                      <span className="flex items-center gap-1.5">
+                        <UserIcon className="size-3.5" />
+                        {post.author}
+                      </span>
+                    </div>
+                    <h3 className="text-xl mb-3 group-hover:text-cyan-400 transition-colors line-clamp-2">
+                      {post.title}
+                    </h3>
+                    <p className="text-sm text-zinc-400 mb-4 line-clamp-3">
+                      {post.summary}
+                    </p>
+                    <span className="text-sm text-cyan-400 flex items-center gap-1 group-hover:gap-2 transition-all">
+                      Read more
+                      <ArrowRightIcon className="size-3.5" />
+                    </span>
+                  </Link>
+                </article>
+              ))}
+            </div>
+          ) : (
+            <div className="p-8 text-center text-muted-foreground border-t">
+              <p>No posts yet. Check back soon!</p>
+            </div>
+          )}
+          <div className="p-8 flex justify-center">
+            <Button size="xl" variant="outline" render={<Link to="/blog" />}>
+              View All Posts
+            </Button>
           </div>
         </div>
       </section>
