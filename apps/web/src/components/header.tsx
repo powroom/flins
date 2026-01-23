@@ -19,7 +19,7 @@ const Header = () => {
             flins
           </Link>
           <nav aria-label="Main navigation" className="flex items-center">
-            <div className={cn("flex sm:items-center sm:static border-b sm:border-b-0 inset-x-0 absolute top-full sm:flex-row flex-col bg-background divide-y sm:divide-y-0", isOpen ? "block" : "hidden")}>
+            <div className={cn("sm:items-center sm:static border-b sm:border-b-0 inset-x-0 absolute top-full sm:flex-row flex-col bg-background divide-y sm:divide-y-0", isOpen ? "flex" : "hidden")}>
               <Button variant="ghost" render={<Link to="/discovery" />}>
                 Discovery
               </Button>

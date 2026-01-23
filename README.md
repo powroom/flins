@@ -18,7 +18,43 @@ Install, manage, and update skills and commands across 19+ AI development tools 
 
 ## Supported Agents
 
-[Antigravity](https://antigravity.google/), [Amp](http://ampcode.com/), [Claude Code](https://claude.com/product/claude-code), [Clawdbot](https://clawdbot.com/), [CodeBuddy](https://www.codebuddy.ai/), [Codex](https://openai.com/codex/), [CommandCode](https://commandcode.ai/), [Copilot](https://github.com/features/copilot), [Cursor](http://cursor.com/), [Factory Droid](https://factory.ai/), [Gemini CLI](https://geminicli.com/), [Goose](https://goose.ai/), [Kilo Code](https://kilo.ai/), [Kiro](https://kiro.dev/), [Letta](https://www.letta.com/), [Neovate](https://neovateai.dev/), [OpenCode](https://opencode.ai/), [OpenHands](https://openhands.ai/), [Pi](https://shittycodingagent.ai/), [Qoder](https://qoder.com/), [Qwen Code](https://qwenlm.github.io/qwen-code-docs/), [Roo Code](https://roocode.com/), [Trae](http://trae.ai/), [Windsurf](http://windsurf.com/), [Zencoder](https://zencoder.ai/)
+<table>
+  <tr>
+    <td align="center" width="60"><a href="https://claude.com/product/claude-code"><img src="apps/web/public/brands/claude-code.svg" alt="Claude Code" width="32"></a></td>
+    <td align="center" width="60"><a href="http://cursor.com/"><img src="apps/web/public/brands/cursor.png" alt="Cursor" width="32"></a></td>
+    <td align="center" width="60"><a href="https://github.com/features/copilot"><img src="apps/web/public/brands/github-copilot.png" alt="Copilot" width="32"></a></td>
+    <td align="center" width="60"><a href="http://windsurf.com/"><img src="apps/web/public/brands/windsurf.png" alt="Windsurf" width="32"></a></td>
+    <td align="center" width="60"><a href="https://geminicli.com/"><img src="apps/web/public/brands/gemini-cli.svg" alt="Gemini CLI" width="32"></a></td>
+    <td align="center" width="60"><a href="https://factory.ai/"><img src="apps/web/public/brands/factory.png" alt="Factory Droid" width="32"></a></td>
+  </tr>
+  <tr>
+    <td align="center" width="60"><a href="https://opencode.ai/"><img src="apps/web/public/brands/opencode.svg" alt="OpenCode" width="32"></a></td>
+    <td align="center" width="60"><a href="https://openhands.ai/"><img src="apps/web/public/brands/openhands.svg" alt="OpenHands" width="32"></a></td>
+    <td align="center" width="60"><a href="https://roocode.com/"><img src="apps/web/public/brands/roo.png" alt="Roo Code" width="32"></a></td>
+    <td align="center" width="60"><a href="http://ampcode.com/"><img src="apps/web/public/brands/amp.png" alt="Amp" width="32"></a></td>
+    <td align="center" width="60"><a href="https://goose.ai/"><img src="apps/web/public/brands/goose.png" alt="Goose" width="32"></a></td>
+    <td align="center" width="60"><a href="https://kilo.ai/"><img src="apps/web/public/brands/kilo.png" alt="Kilo Code" width="32"></a></td>
+  </tr>
+  <tr>
+    <td align="center" width="60"><a href="http://trae.ai/"><img src="apps/web/public/brands/trae.svg" alt="Trae" width="32"></a></td>
+    <td align="center" width="60"><a href="https://www.letta.com/"><img src="apps/web/public/brands/letta.png" alt="Letta" width="32"></a></td>
+    <td align="center" width="60"><a href="https://antigravity.google/"><img src="apps/web/public/brands/antigravity.png" alt="Antigravity" width="32"></a></td>
+    <td align="center" width="60"><a href="https://kiro.dev/"><img src="apps/web/public/brands/kiro.svg" alt="Kiro" width="32"></a></td>
+    <td align="center" width="60"><a href="https://qoder.com/"><img src="apps/web/public/brands/qoder.png" alt="Qoder" width="32"></a></td>
+    <td align="center" width="60"><a href="https://shittycodingagent.ai/"><img src="apps/web/public/brands/pi.svg" alt="Pi" width="32"></a></td>
+  </tr>
+  <tr>
+    <td align="center" width="60"><a href="https://neovateai.dev/"><img src="apps/web/public/brands/neovate.svg" alt="Neovate" width="32"></a></td>
+    <td align="center" width="60"><a href="https://commandcode.ai/"><img src="apps/web/public/brands/command-code.svg" alt="CommandCode" width="32"></a></td>
+    <td align="center" width="60"><a href="https://clawdbot.com/"><img src="apps/web/public/brands/clawdbot.svg" alt="Clawdbot" width="32"></a></td>
+    <td align="center" width="60"><a href="https://www.codebuddy.ai/"><img src="apps/web/public/brands/codebuddy.svg" alt="CodeBuddy" width="32"></a></td>
+    <td align="center" width="60"><a href="https://zencoder.ai/"><img src="apps/web/public/brands/zencoder.svg" alt="Zencoder" width="32"></a></td>
+    <td align="center" width="60"><a href="https://qwenlm.github.io/qwen-code-docs/"><img src="apps/web/public/brands/qwen.png" alt="Qwen Code" width="32"></a></td>
+  </tr>
+  <tr>
+    <td align="center" width="60"><a href="https://openai.com/codex/"><img src="apps/web/public/brands/codex.png" alt="Codex" width="32"></a></td>
+  </tr>
+</table>
 
 ## Installation
 
