@@ -10,7 +10,8 @@
       "Bash(bun run fmt:*)",
       "Bash(bun run lint:*)",
       "Bash(tree:*)",
-      "Bash(find:*)"
+      "Bash(find:*)",
+      "Skill(copywriting)"
     ]
   }
 }

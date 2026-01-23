@@ -271,10 +271,10 @@ function App() {
                         skill.name
                       )}
                     </h3>
-                    <div className="flex items-center text-sm text-muted-foreground gap-2">
+                    {/* <div className="flex items-center text-sm text-muted-foreground gap-2">
                       <DownloadIcon className="size-3" />
                       {skill.downloads.toLocaleString()}
-                    </div>
+                    </div> */}
                   </div>
                   {skill.repo && (
                     <CodeBlockCommand
