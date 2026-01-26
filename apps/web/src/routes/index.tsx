@@ -1,4 +1,5 @@
 import { createFileRoute, Link } from '@tanstack/react-router'
+import { CheckIcon, CopyIcon } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { FlinsCommands } from '@/components/flins-command'
 import { GitSourceExamples } from '@/components/git-source-examples'
@@ -65,8 +66,7 @@ export const Route = createFileRoute('/')({
   head: () => ({
     meta: [
       {
-        title:
-          'flins: The universal skill manager for AI coding agents',
+        title: 'flins: The universal skill manager for AI coding agents',
       },
       {
         name: 'description',
@@ -76,8 +76,7 @@ export const Route = createFileRoute('/')({
       // Open Graph
       {
         property: 'og:title',
-        content:
-          'flins: The universal skill manager for AI coding agents',
+        content: 'flins: The universal skill manager for AI coding agents',
       },
       {
         property: 'og:description',
@@ -92,8 +91,7 @@ export const Route = createFileRoute('/')({
       { name: 'twitter:card', content: 'summary_large_image' },
       {
         name: 'twitter:title',
-        content:
-          'flins: The universal skill manager for AI coding agents',
+        content: 'flins: The universal skill manager for AI coding agents',
       },
       {
         name: 'twitter:description',
@@ -623,6 +621,10 @@ function App() {
 
       <SectionDivider />
 
+      <SkillEnforcementPromptSection />
+
+      <SectionDivider />
+
       <section>
         <div className="max-w-7xl mx-auto border-x flex flex-col relative">
           <div className="flex flex-col items-center gap-8 p-8 text-center">
@@ -660,5 +662,69 @@ function App() {
         </div>
       </section>
     </>
+  )
+}
+
+const SKILL_ENFORCEMENT_PROMPT = `Update @AGENTS.md by adding all missing skills found in the @.agents/skills directory.
+
+Use aggressive, authoritative language.
+Do not use soft words such as should, may, or can.
+Use words like MUST, MANDATORY, REQUIRED, UNACCEPTABLE.
+
+Follow the existing format in @AGENTS.md exactly.
+
+Example:
+
+- Skill(avoid-feature-creep): MANDATORY when scope expansion threatens delivery. Stop bloating features immediately. MUST ruthlessly cut non-essential functionality.
+- Skill(baseline-ui): REQUIRED for all UI work. Non-negotiable foundation for component consistency. Skipping this guarantees inconsistency.`
+
+function SkillEnforcementPromptSection() {
+  const { isCopied, copyToClipboard } = useCopyToClipboard()
+
+  return (
+    <section>
+      <div className="max-w-7xl mx-auto border-x flex flex-col relative">
+        <div className="grid lg:grid-cols-2 grid-cols-1 items-center">
+          <div className="flex flex-col items-start gap-6 p-8">
+            <h2 className="text-5xl">Make agents use your skills</h2>
+            <p className="text-muted-foreground text-lg text-balance leading-relaxed">
+              Agents invoke skills less than 20% of the time by default. Copy
+              this prompt and run it in your AI agent to automatically update
+              your AGENTS.md with enforcement rules.
+            </p>
+          </div>
+          <div className="sm:p-10 p-4 relative bg-linear-to-bl from-red-600 via-transparent to-red-600">
+            <div className="bg-background p-6 relative">
+              <div className="flex items-center justify-between mb-4 pb-3 border-b border-zinc-700">
+                <span className="text-xs text-zinc-400 font-mono">
+                  Copy and run this prompt
+                </span>
+                <Button
+                  className="opacity-70 hover:opacity-100"
+                  size="sm"
+                  variant="ghost"
+                  onClick={() => copyToClipboard(SKILL_ENFORCEMENT_PROMPT)}
+                >
+                  {isCopied ? (
+                    <>
+                      <CheckIcon className="size-3 mr-1.5" />
+                      Copied
+                    </>
+                  ) : (
+                    <>
+                      <CopyIcon className="size-3 mr-1.5" />
+                      Copy
+                    </>
+                  )}
+                </Button>
+              </div>
+              <pre className="text-sm font-mono leading-relaxed whitespace-pre-wrap text-zinc-300 overflow-x-auto">
+                {SKILL_ENFORCEMENT_PROMPT}
+              </pre>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
   )
 }
