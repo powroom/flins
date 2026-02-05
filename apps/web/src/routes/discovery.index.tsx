@@ -24,7 +24,7 @@ import {
   InputGroupAddon,
   InputGroupInput,
 } from '@/components/ui/input-group'
-import { Skeleton } from '@/components/ui/skeleton'
+import { Spinner } from '@/components/ui/spinner'
 import { CodeBlockCommand } from '@/components/code-block-command'
 import { zodValidator } from '@tanstack/zod-adapter'
 import { z } from 'zod'
@@ -295,18 +295,9 @@ function App() {
           </div>
 
           {isLoading ? (
-            <section className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 divide-x divide-y border-y">
-              {Array.from({ length: ITEMS_PER_PAGE }).map((_, i) => (
-                <div key={i} className="p-8 space-y-4">
-                  <div className="flex items-center gap-2">
-                    <Skeleton className="h-6 w-20" />
-                    <Skeleton className="h-6 w-16" />
-                  </div>
-                  <Skeleton className="h-7 w-3/4" />
-                  <Skeleton className="h-10 w-full" />
-                </div>
-              ))}
-            </section>
+            <div className="p-8 flex justify-center">
+              <Spinner className="w-8 h-8" />
+            </div>
           ) : isEmpty ? (
             <div className="p-8">
               <Empty>
@@ -367,18 +358,9 @@ function App() {
               <div ref={loadMoreRef} className="h-4" />
 
               {isFetchingNextPage && (
-                <section className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 divide-x divide-y border-y">
-                  {Array.from({ length: ITEMS_PER_PAGE }).map((_, i) => (
-                    <div key={`loading-${i}`} className="p-8 space-y-4">
-                      <div className="flex items-center gap-2">
-                        <Skeleton className="h-6 w-20" />
-                        <Skeleton className="h-6 w-16" />
-                      </div>
-                      <Skeleton className="h-7 w-3/4" />
-                      <Skeleton className="h-10 w-full" />
-                    </div>
-                  ))}
-                </section>
+                <div className="pb-4 flex justify-center">
+                  <Spinner className="w-6 h-6" />
+                </div>
               )}
 
               {!hasNextPage && allSkills.length > 0 && (
