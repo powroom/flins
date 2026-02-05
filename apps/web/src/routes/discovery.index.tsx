@@ -1,14 +1,14 @@
 import { createFileRoute, Link, useNavigate } from '@tanstack/react-router'
 import {
   ArrowUpRightIcon,
-  DownloadIcon,
   PlusIcon,
   SearchIcon,
   SparkleIcon,
 } from 'lucide-react'
 import { useDebouncer } from '@tanstack/react-pacer'
-import { useState } from 'react'
-import { convexQuery } from '@convex-dev/react-query'
+import { useState, useEffect, useRef } from 'react'
+import { useInfiniteQuery } from '@tanstack/react-query'
+import { useConvex } from 'convex/react'
 import { api } from '../../convex/_generated/api'
 import { Button } from '@/components/ui/button'
 import {
@@ -24,11 +24,14 @@ import {
   InputGroupAddon,
   InputGroupInput,
 } from '@/components/ui/input-group'
-
+import { Skeleton } from '@/components/ui/skeleton'
 import { CodeBlockCommand } from '@/components/code-block-command'
 import { zodValidator } from '@tanstack/zod-adapter'
 import { z } from 'zod'
 import { Badge } from '@/components/ui/badge'
+import { ConvexHttpClient } from 'convex/browser'
+
+const ITEMS_PER_PAGE = 32
 
 export const Route = createFileRoute('/discovery/')({
   component: App,
@@ -42,27 +45,35 @@ export const Route = createFileRoute('/discovery/')({
     search,
     featured,
   }),
-  loader: async ({ deps: { search, featured }, context }) => {
-    let allSkills = await context.queryClient.ensureQueryData(
-      convexQuery(api.stats.getAllSkills, {}),
-    )
+  loader: async ({ deps: { search, featured } }) => {
+    const convexUrl = import.meta.env.VITE_CONVEX_URL
 
-    if (search) {
-      const query = search.toLowerCase()
-      allSkills = allSkills.filter(
-        (skill) =>
-          skill.name.toLowerCase().includes(query) ||
-          (skill.repo?.toLowerCase().includes(query) ?? false),
-      )
+    if (!convexUrl) {
+      return {
+        initialData: null,
+        searchParams: { search, featured },
+      }
     }
 
-    if (featured) {
-      allSkills = allSkills.filter((skill) => skill.isFeatured)
-    }
+    const client = new ConvexHttpClient(convexUrl)
 
-    return {
-      allSkills,
-      searchParams: { search, featured },
+    try {
+      const firstPage = await client.query(api.stats.getSkillsPaginated, {
+        paginationOpts: { numItems: ITEMS_PER_PAGE, cursor: null },
+      })
+
+      return {
+        initialData: {
+          pages: [firstPage],
+          pageParams: [],
+        },
+        searchParams: { search, featured },
+      }
+    } catch {
+      return {
+        initialData: null,
+        searchParams: { search, featured },
+      }
     }
   },
   head: () => ({
@@ -76,7 +87,6 @@ export const Route = createFileRoute('/discovery/')({
         content:
           'Discover and install AI agent skills. Works with Claude Code, Cursor, Copilot, Windsurf, Gemini CLI, and 10+ other AI dev tools.',
       },
-      // Open Graph
       {
         property: 'og:title',
         content:
@@ -91,7 +101,6 @@ export const Route = createFileRoute('/discovery/')({
       { property: 'og:url', content: 'https://flins.tech/discovery' },
       { property: 'og:image', content: 'https://flins.tech/og.png' },
       { property: 'og:site_name', content: 'flins' },
-      // Twitter Card
       { name: 'twitter:card', content: 'summary_large_image' },
       {
         name: 'twitter:title',
@@ -156,9 +165,11 @@ export const Route = createFileRoute('/discovery/')({
 })
 
 function App() {
-  const { allSkills, searchParams } = Route.useLoaderData()
+  const { initialData, searchParams } = Route.useLoaderData()
   const navigate = useNavigate({ from: Route.fullPath })
   const [searchInput, setSearchInput] = useState(searchParams.search ?? '')
+  const loadMoreRef = useRef<HTMLDivElement>(null)
+  const convex = useConvex()
 
   const updateSearch = (params: Partial<typeof searchParams>) => {
     navigate({
@@ -180,6 +191,47 @@ function App() {
   const toggleFeatured = () => {
     updateSearch({ featured: searchParams.featured ? undefined : true })
   }
+
+  const fetchSkillsPage = async ({
+    pageParam,
+  }: {
+    pageParam: string | null
+  }) => {
+    return convex.query(api.stats.getSkillsPaginated, {
+      paginationOpts: { numItems: ITEMS_PER_PAGE, cursor: pageParam },
+    })
+  }
+
+  const { data, fetchNextPage, hasNextPage, isFetchingNextPage, isPending } =
+    useInfiniteQuery({
+      queryKey: ['skills', 'paginated'],
+      queryFn: fetchSkillsPage,
+      initialPageParam: null,
+      getNextPageParam: (lastPage) => lastPage.continueCursor,
+      initialData: initialData ?? undefined,
+    })
+
+  useEffect(() => {
+    const observer = new IntersectionObserver(
+      (entries) => {
+        if (entries[0].isIntersecting && hasNextPage && !isFetchingNextPage) {
+          fetchNextPage()
+        }
+      },
+      { rootMargin: '1000px' },
+    )
+
+    if (loadMoreRef.current) {
+      observer.observe(loadMoreRef.current)
+    }
+
+    return () => observer.disconnect()
+  }, [hasNextPage, isFetchingNextPage, fetchNextPage])
+
+  const allSkills = data?.pages.flatMap((page) => page.page) ?? []
+
+  const isLoading = isPending && allSkills.length === 0
+  const isEmpty = !isLoading && allSkills.length === 0
 
   return (
     <>
@@ -242,49 +294,20 @@ function App() {
             </p>
           </div>
 
-          {allSkills.length > 0 ? (
+          {isLoading ? (
             <section className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 divide-x divide-y border-y">
-              {allSkills.map((skill) => (
-                <div key={skill.name} className="p-8">
-                  <div className="flex items-center gap-1">
-                    {skill.isFeatured && (
-                      <Badge variant="outline">
-                        <SparkleIcon />
-                        curated
-                      </Badge>
-                    )}
-                    <Badge variant="outline">{skill.type}</Badge>
+              {Array.from({ length: ITEMS_PER_PAGE }).map((_, i) => (
+                <div key={i} className="p-8 space-y-4">
+                  <div className="flex items-center gap-2">
+                    <Skeleton className="h-6 w-20" />
+                    <Skeleton className="h-6 w-16" />
                   </div>
-                  <div className="flex gap-2 mt-1 mb-4 justify-between items-center">
-                    <h3 className="text-lg">
-                      {skill.sourceUrl ? (
-                        <a
-                          className="flex items-center gap-1 group"
-                          href={skill.sourceUrl}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                        >
-                          {skill.name}
-                          <ArrowUpRightIcon className="opacity-0 size-4 group-hover:opacity-100 transition-all translate-y-1 group-hover:translate-y-0" />
-                        </a>
-                      ) : (
-                        skill.name
-                      )}
-                    </h3>
-                    {/* <div className="flex items-center text-sm text-muted-foreground gap-2">
-                      <DownloadIcon className="size-3" />
-                      {skill.downloads.toLocaleString()}
-                    </div> */}
-                  </div>
-                  {skill.repo && (
-                    <CodeBlockCommand
-                      skill={`${skill.isFeatured && skill.featuredName ? skill.featuredName : skill.repo} --skill ${skill.name}`}
-                    />
-                  )}
+                  <Skeleton className="h-7 w-3/4" />
+                  <Skeleton className="h-10 w-full" />
                 </div>
               ))}
             </section>
-          ) : (
+          ) : isEmpty ? (
             <div className="p-8">
               <Empty>
                 <EmptyHeader>
@@ -301,6 +324,69 @@ function App() {
                 </EmptyContent>
               </Empty>
             </div>
+          ) : (
+            <>
+              <section className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 divide-x divide-y border-y">
+                {allSkills.map((skill) => (
+                  <div key={skill.name} className="p-8">
+                    <div className="flex items-center gap-1">
+                      {skill.isFeatured && (
+                        <Badge variant="outline">
+                          <SparkleIcon />
+                          curated
+                        </Badge>
+                      )}
+                      <Badge variant="outline">{skill.type}</Badge>
+                    </div>
+                    <div className="flex gap-2 mt-1 mb-4 justify-between items-center">
+                      <h3 className="text-lg">
+                        {skill.sourceUrl ? (
+                          <a
+                            className="flex items-center gap-1 group"
+                            href={skill.sourceUrl}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                          >
+                            {skill.name}
+                            <ArrowUpRightIcon className="opacity-0 size-4 group-hover:opacity-100 transition-all translate-y-1 group-hover:translate-y-0" />
+                          </a>
+                        ) : (
+                          skill.name
+                        )}
+                      </h3>
+                    </div>
+                    {skill.repo && (
+                      <CodeBlockCommand
+                        skill={`${skill.isFeatured && skill.featuredName ? skill.featuredName : skill.repo} --skill ${skill.name}`}
+                      />
+                    )}
+                  </div>
+                ))}
+              </section>
+
+              <div ref={loadMoreRef} className="h-4" />
+
+              {isFetchingNextPage && (
+                <section className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 divide-x divide-y border-y">
+                  {Array.from({ length: ITEMS_PER_PAGE }).map((_, i) => (
+                    <div key={`loading-${i}`} className="p-8 space-y-4">
+                      <div className="flex items-center gap-2">
+                        <Skeleton className="h-6 w-20" />
+                        <Skeleton className="h-6 w-16" />
+                      </div>
+                      <Skeleton className="h-7 w-3/4" />
+                      <Skeleton className="h-10 w-full" />
+                    </div>
+                  ))}
+                </section>
+              )}
+
+              {!hasNextPage && allSkills.length > 0 && (
+                <div className="pb-4 text-center text-sm text-muted-foreground">
+                  No more skills to load
+                </div>
+              )}
+            </>
           )}
         </div>
       </main>
