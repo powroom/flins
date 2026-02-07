@@ -11,7 +11,8 @@
       "Bash(bun run lint:*)",
       "Bash(tree:*)",
       "Bash(find:*)",
-      "Skill(copywriting)"
+      "Skill(copywriting)",
+      "mcp__exa__web_search_exa"
     ]
   }
 }

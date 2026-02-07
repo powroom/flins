@@ -43,7 +43,7 @@ export const Route = createFileRoute('/discovery/')({
     featured,
   }),
   loader: async ({ deps: { search, featured }, context }) => {
-    let allSkills = await context.queryClient.ensureQueryData(
+    let allSkills = await context.queryClient.fetchQuery(
       convexQuery(api.stats.getAllSkills, {}),
     )
 
